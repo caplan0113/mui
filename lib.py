@@ -1,0 +1,237 @@
+import json
+import csv
+import traceback
+import numpy as np
+from collections import defaultdict
+import os
+import pickle
+from scipy.spatial.transform import Rotation as R
+
+N = 6
+
+DBDATA = os.path.join("bdata", "{0:02d}")
+FGAZE = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_gaze.csv")
+FPLAYER = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_player.csv")
+FROBOT = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_robot.csv")
+FINFO = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_taskinfo.json")
+BDATA = os.path.join("bdata", "{0:02d}", "{0:02d}_{1:1d}.pkl")
+BDATA_SUBTASK = os.path.join("bdata", "{0:02d}", "{0:02d}_{1:1d}_subtask.pkl")
+
+KEY_INFO = ["taskTimeAll", "taskTimeParts", "taskCollisionAll", "taskCollisionParts", "taskMistakeAll", "taskMistakeParts", "mapId"]
+KEY_PLAYER = ["pos", "rot", "bpm", "trigger", "state", "subTask", "warning", "collision"]
+KEY_GAZE = ["time", "lg_pos", "lg_rot", "rg_pos", "rg_rot", "obj"]
+KEY_ROBOT = ["r_id", "pos", "rot_y"]
+
+COLLISION_FLAG = [
+    [True, True, False, False, True, True, True, True, False],
+    [False, True, True, True, False, False, True, True, True],
+    [False, False, True, False, True, True, True, True, True],
+    [True, True, True, False, True, True, True, False, False],
+    [True, False]
+]
+
+ROBOT_NUM = [1, 3, 3, 1, 3, 3, 1, 2, 2, 2, 2]
+
+"""
+data = [
+    {
+        "time": np.array(float),
+        "lg_pos": np.array(), # left hand position
+        "lg_rot": np.array(), # left hand rotation
+        "rg_pos": np.array(), # right hand position
+        "rg_rot": np.array(), # right hand rotation
+        "obj": np.array(), # object name
+        "pos": np.array(), # camera position
+        "rot": np.array(), # camera rotation
+        "bpm": np.array(), # heart rate
+        "trigger": np.array(), # button pressed
+        "state": np.array(), # state
+        "subTask": np.array(), # subtask
+        "warning": np.array(), # warning
+        "collision": np.array(), # collision
+        "robot": [ # robot data
+            {
+                "r_id": np.array(), # robot id
+                "pos": np.array(), # robot position
+                "rot_y": np.array() # robot rotation
+            },
+            {
+                "r_id": np.array(),
+                "pos": np.array(),
+                "rot_y": np.array()
+            },
+            {
+                "r_id": np.array(),
+                "pos": np.array(),
+                "rot_y": np.array()
+            },
+            {
+                "r_id": np.array(),
+                "pos": np.array(),
+                "rot_y": np.array()
+            },
+            {
+                "r_id": np.array(),
+                "pos": np.array(),
+                "rot_y": np.array()
+            },
+            {
+                "r_id": np.array(),
+                "pos": np.array(),
+                "rot_y": np.array()
+            }
+        ],
+        "robot_cnt": np.array(), # robot count
+        "taskTime": float, # task time
+        "taskCollision": int, # task collision
+        "taskMistake": int, # task mistake
+]
+"""
+
+def convert_binary(userId, uiId):
+    data = defaultdict(list)
+
+    filename = FGAZE.format(userId, uiId)
+    with open(filename, 'r', encoding="utf-8-sig") as f:
+        reader = csv.reader(f)
+        next(reader) # time, l_pos_x, l_pos_y, l_pos_z, l_qua_x, l_qua_y, l_qua_z, l_qua_w, r_pos_x, r_pos_y, r_pos_z, r_qua_x, r_qua_y, r_qua_z, r_qua_w, obj
+        for row in reader:
+            data["time"].append(float(row[0]))
+            data["lg_pos"].append((float(row[1]), float(row[2]), float(row[3])))
+            data["lg_rot"].append(R.from_quat((float(row[4]), float(row[5]), float(row[6]), float(row[7]))).as_euler("xyz", degrees=True))
+            data["rg_pos"].append((float(row[8]), float(row[9]), float(row[10])))
+            data["rg_rot"].append(R.from_quat((float(row[11]), float(row[12]), float(row[13]), float(row[14]))).as_euler("xyz", degrees=True))
+            data["obj"].append(row[15].strip())
+    
+    filename = FPLAYER.format(userId, uiId)
+    with open(filename, 'r', encoding="utf-8-sig") as f:
+        reader = csv.reader(f)
+        next(reader) # time, pos_x, pos_y, pos_z, qua_x, qua_y, qua_z, qua_w, bpm, trigger, state, subTask, count(robot), collision
+        for row in reader:
+            data["pos"].append((float(row[1]), float(row[2]), float(row[3])))
+            data["rot"].append(R.from_quat((float(row[4]), float(row[5]), float(row[6]), float(row[7]))).as_euler("xyz", degrees=True))
+            data["bpm"].append(int(row[8]))
+            data["trigger"].append(bool(int(row[9])))
+            data["state"].append(int(row[10]))
+            data["subTask"].append(bool(int(row[11])))
+            data["warning"].append(int(row[12]))
+            data["collision"].append(bool(int(row[13])))
+    
+    filename = FROBOT.format(userId, uiId)
+    with open(filename, 'r', encoding="utf-8-sig") as f:
+        reader = csv.reader(f)
+        next(reader) # time,r1_userId,r1_x,r1_z,r1_rot_y,r2_userId,r2_x,r2_z,r2_rot_y,r3_userId,r3_x,r3_z,r3_rot_y,pr1_userId,pr1_x,pr1_z,pr1_rot_y,pr2_userId,pr2_x,pr2_z,pr2_rot_y,pr3_userId,pr3_x,pr3_z,pr3_rot_y,cnt(robot)
+        data["robot"] = [defaultdict(list) for _ in range(6)]
+        for row in reader:
+            for i in range(0, 6):
+                try: 
+                    data["robot"][i]["r_id"].append(int(row[1 + i * 4]))
+                    data["robot"][i]["pos"].append((float(row[2 + i * 4]), float(0), float(row[3 + i * 4])))
+                    data["robot"][i]["rot_y"].append(float(row[4 + i * 4]))
+                except:
+                    print(row)
+            data["robot_cnt"].append(int(row[25]))
+    
+    for key in data.keys():
+        if key == "robot":
+            for i in range(6):
+                data[key][i]["r_id"] = np.array(data[key][i]["r_id"])
+                data[key][i]["pos"] = np.array(data[key][i]["pos"])
+                data[key][i]["rot_y"] = np.array(data[key][i]["rot_y"])
+        else:
+            data[key] = np.array(data[key])
+
+    filename = FINFO.format(userId, uiId)
+    with open(filename, "r", encoding="utf-8-sig") as f:
+        info = json.load(f)
+        data["taskTimeAll"] = info["taskTimeAll"]
+        data["taskTimeParts"] = np.array(info["taskTimeParts"])
+        data["taskCollisionAll"] = info["taskCollisionAll"]
+        data["taskCollisionParts"] = np.array(info["taskCollisionParts"])
+        data["taskMistakeAll"] = info["taskMistakeAll"]
+        data["taskMistakeParts"] = np.array(info["taskMistakeParts"])
+        data["mapId"] = info["mapId"]
+
+    os.makedirs(DBDATA.format(userId), exist_ok=True)
+    with open(BDATA.format(userId, uiId), "wb") as f:
+        pickle.dump(dict(data), f)
+    
+
+def split_subtask(userId, uiId):
+    filename = BDATA.format(userId, uiId)
+    if not os.path.exists(filename):
+        try:
+            convert_binary(userId, uiId)
+        except Exception as e:
+            print("Error {0:02d}_{1:1d}: {2}".format(userId, uiId, e))
+            return None
+    
+    with open(filename, "rb") as f:
+        data = pickle.load(f)
+
+    states = []
+    for state in data["state"]:
+        if len(states) == 0 or states[-1] != state:
+            states.append(state)
+    
+    subtask_data = []
+    for i, state in enumerate(states):
+        mask = (data["state"] == state) & data["subTask"]
+        masked_data = dict()
+        for key in data.keys():
+            if key == "robot":
+                masked_data["robot"] = [dict() for _ in range(6)]
+                for j in range(6):
+                    for k in data["robot"][j]:
+                        masked_data[key][j][k] = data[key][j][k][mask]
+            elif key not in KEY_INFO:
+                masked_data[key] = data[key][mask]
+        
+        masked_data["taskTime"] = data["taskTimeParts"][i]
+        masked_data["taskCollision"] = data["taskCollisionParts"][i]
+        masked_data["taskMistake"] = data["taskMistakeParts"][i]
+        masked_data["state"] = state
+        masked_data["collision_flag"] = COLLISION_FLAG[data["mapId"]][i]
+        subtask_data.append(masked_data)
+        
+    with open(BDATA_SUBTASK.format(userId, uiId), "wb") as f:
+        pickle.dump(subtask_data, f)
+        
+
+def all_convert_binary():
+    for i in range(3, N):
+        for j in range(0, 5):
+            try:
+                convert_binary(i, j)
+                split_subtask(i, j)
+            except Exception as e:
+                print("Error {0:02d}_{1:1d}: {2}".format(i, j, e))
+                traceback.print_exc()
+
+def load_binary(userId, uiId):
+    filename = BDATA.format(userId, uiId)
+    if not os.path.exists(filename):
+        try:
+            convert_binary(userId, uiId)
+        except Exception as e:
+            print("Error {0:02d}_{1:1d}: {2}".format(userId, uiId, e))
+            return None
+    
+    with open(filename, "rb") as f:
+        data = pickle.load(f)
+    return data
+
+def load_subtask(userId, uiId):
+    filename = BDATA_SUBTASK.format(userId, uiId)
+    if not os.path.exists(filename):
+        try:
+            split_subtask(userId, uiId)
+        except Exception as e:
+            print("Error {0:02d}_{1:1d}: {2}".format(userId, uiId, e))
+            return None
+    
+    with open(filename, "rb") as f:
+        data = pickle.load(f)
+    return data
+
+# all_convert_binary()
