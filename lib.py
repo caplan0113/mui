@@ -198,12 +198,16 @@ def split_subtask(userId, uiId):
         pickle.dump(subtask_data, f)
         
 
-def all_convert_binary():
+def all_convert_binary(new=False):
     for i in range(3, N):
         for j in range(0, 5):
             try:
-                convert_binary(i, j)
-                split_subtask(i, j)
+                if new or not os.path.exists(BDATA.format(i, j)):
+                    convert_binary(i, j)
+                    print("Convert {0:02d}_{1:1d}".format(i, j))
+                if new or not os.path.exists(BDATA_SUBTASK.format(i, j)):
+                    split_subtask(i, j)
+                    print("Split {0:02d}_{1:1d}".format(i, j))
             except Exception as e:
                 print("Error {0:02d}_{1:1d}: {2}".format(i, j, e))
                 traceback.print_exc()
@@ -233,5 +237,10 @@ def load_subtask(userId, uiId):
     with open(filename, "rb") as f:
         data = pickle.load(f)
     return data
+
+def distance(a, b):
+    a = [a[0], 0, a[2]]
+    b = [b[0], 0, b[2]]
+    return np.linalg.norm(np.array(a) - np.array(b))
 
 # all_convert_binary()

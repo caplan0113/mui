@@ -65,20 +65,36 @@ def barh_plot(userId, uiId, attr, target):
     # plt.show()
 
 def robot_distance(userId, uiId):
+    fig, axs = plt.subplots(nrows=9, ncols=1, figsize=(10, 12))
+    fig.subplots_adjust(hspace=0.3, left=0.05, right=0.99)
+
     data = load_subtask(userId, uiId)
+    tasks = [ "{0}*".format(ROBOT_NUM[d["state"]])  if d["collision_flag"] else "{0} ".format(ROBOT_NUM[d["state"]]) for i, d in enumerate(data)]
+    plot_data = []
     for i, sub in enumerate(data):
         min_dist = []
         for j in range(len(sub["pos"])):
             mdist = 10**10
             for k in sub["robot"]:
                 if k["r_id"][j] == 99: continue
-                mdist = min(np.linalg.norm(sub["pos"][j] - k["pos"][j]), mdist)
+                mdist = min(distance(sub["pos"][j], k["pos"][j]), mdist)
             min_dist.append(mdist)
         print("({0}, {1}) distance: {2}".format(userId, uiId, sum(min_dist)/len(min_dist)))
-        plt.plot(min_dist)
-        plt.title('({0:02d}, {1:01d})'.format(userId, uiId))
-        # plt.savefig(PIC.format("robot", "distance", userId, uiId))
-        plt.show()
+        plot_data.append(min_dist)
+    
+    xmax = max([len(r) for r in plot_data])
+    ymin, ymax = min([min(r) for r in plot_data]), max([max(r) for r in plot_data])
+    for i, min_dist in enumerate(plot_data):
+        axs[i].set_ylim(0, ymax*1.1)
+        axs[i].set_xlim(0, xmax)
+        # axs[i].set_xticks(range(0, len(min_dist), 100))
+        # axs[i].set_xticklabels(range(0, len(min_dist), 100))
+        axs[i].text(-0.08, 0.5, tasks[i], transform=axs[i].transAxes, fontsize=10, va='center')
+        axs[i].plot(min_dist)
+    
+    # plt.title("User-{0:02d}, UI-{1}".format(userId, UI[uiId]))
+    plt.tight_layout()
+    plt.show()
 
 def calculate_change(userId, uiId, attr):
     data = load_subtask(userId, uiId)
