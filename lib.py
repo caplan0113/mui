@@ -7,7 +7,7 @@ import os
 import pickle
 from scipy.spatial.transform import Rotation as R
 
-N = 6
+N = 6 + 1
 
 DBDATA = os.path.join("bdata", "{0:02d}")
 FGAZE = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_gaze.csv")
@@ -85,6 +85,7 @@ data = [
         "taskTime": float, # task time
         "taskCollision": int, # task collision
         "taskMistake": int, # task mistake
+    }, 
 ]
 """
 
@@ -212,6 +213,32 @@ def all_convert_binary(new=False):
                 print("Error {0:02d}_{1:1d}: {2}".format(i, j, e))
                 traceback.print_exc()
 
+def distance(a, b):
+    a = [a[0], 0, a[2]]
+    b = [b[0], 0, b[2]]
+    return np.linalg.norm(np.array(a) - np.array(b))
+
+def all_data_concat(new=False):
+    all_convert_binary(new)
+    data = []
+    for i in range(3, N):
+        userData = []
+        for j in range(0, 4):
+            try:
+                subtask_data = load_subtask(i, j)
+                if subtask_data is None:
+                    continue
+                userData.append(subtask_data)
+            except Exception as e:
+                print("Error {0:02d}_{1:1d}: {2}".format(i, j, e))
+                traceback.print_exc()
+        data.append(userData)
+
+    data = np.array(data)
+    with open("data/all.pkl", "wb") as f:
+        pickle.dump(data, f)
+        print("all.pkl saved")
+
 def load_binary(userId, uiId):
     filename = BDATA.format(userId, uiId)
     if not os.path.exists(filename):
@@ -238,9 +265,14 @@ def load_subtask(userId, uiId):
         data = pickle.load(f)
     return data
 
-def distance(a, b):
-    a = [a[0], 0, a[2]]
-    b = [b[0], 0, b[2]]
-    return np.linalg.norm(np.array(a) - np.array(b))
+def load_all():
+    filename = "data/all.pkl"
+    if not os.path.exists(filename):
+        all_data_concat()
+    
+    with open(filename, "rb") as f:
+        data = pickle.load(f)
+    
+    return data
 
 # all_convert_binary()
