@@ -8,16 +8,18 @@ import pickle
 from scipy.spatial.transform import Rotation as R
 
 N = 6 + 1
+N_USER = 4
 
 DBDATA = os.path.join("bdata", "{0:02d}")
 FGAZE = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_gaze.csv")
 FPLAYER = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_player.csv")
 FROBOT = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_robot.csv")
 FINFO = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_taskinfo.json")
+FSUBJECT = os.path.join("data", "subject.csv")
 BDATA = os.path.join("bdata", "{0:02d}", "{0:02d}_{1:1d}.pkl")
 BDATA_SUBTASK = os.path.join("bdata", "{0:02d}", "{0:02d}_{1:1d}_subtask.pkl")
 
-KEY_INFO = ["taskTimeAll", "taskTimeParts", "taskCollisionAll", "taskCollisionParts", "taskMistakeAll", "taskMistakeParts", "mapId"]
+KEY_INFO = ["taskTimeAll", "taskTimeParts", "taskCollisionAll", "taskCollisionParts", "taskMistakeAll", "taskMistakeParts", "mapId", "userId", "uiId"]
 KEY_PLAYER = ["pos", "rot", "bpm", "trigger", "state", "subTask", "warning", "collision"]
 KEY_GAZE = ["time", "lg_pos", "lg_rot", "rg_pos", "rg_rot", "obj"]
 KEY_ROBOT = ["r_id", "pos", "rot_y"]
@@ -33,6 +35,11 @@ COLLISION_FLAG = [
 ROBOT_NUM = [1, 3, 3, 1, 3, 3, 1, 2, 2, 2, 2]
 
 """
+allData = [
+    [data0, data1, data2, data3], # userId 0
+    ...
+]
+
 data = [
     {
         "time": np.array(float),
@@ -152,10 +159,51 @@ def convert_binary(userId, uiId):
         data["taskMistakeAll"] = info["taskMistakeAll"]
         data["taskMistakeParts"] = np.array(info["taskMistakeParts"])
         data["mapId"] = info["mapId"]
+        data["userId"] = userId
+        data["uiId"] = uiId
 
     os.makedirs(DBDATA.format(userId), exist_ok=True)
     with open(BDATA.format(userId, uiId), "wb") as f:
         pickle.dump(dict(data), f)
+
+def convert_subject(new=False):
+    if not new and os.path.exists(os.path.join("bdata", "subject.pkl")):
+        return
+    
+    data = []
+    with open(FSUBJECT, "r", encoding="utf-8-sig") as f:
+        reader = csv.reader(f) # Id	開始時刻	完了時刻	メール	名前	被験者ID	Map ID	UI ID	UIについて.UIがわかりやすいと感じた	UIについて.UIが邪魔に感じた	UIについて.UIが便利に感じた	UIについて.UIは信頼できると感じた	ロボットの接近に気づくことができた.接近	接近してくるロボットとの距離を把握することができた.距離	接近してくるロボットの方向を把握することができた.方向	サブタスク中、安全に感じた.安全	VR酔いを感じた.VR酔い	作業負荷に関する質問（NASA-TLX）	自由記述
+        next(reader)
+        for i, row in enumerate(reader):
+            if i%4 == 0:
+                data.append([dict() for _ in range(4)])
+            userId = int(row[5])
+            uiId = int(row[7])
+            data[i//4][uiId]["userId"] = userId
+            data[i//4][uiId]["uiId"] = uiId
+            if uiId != 3:
+                data[i//4][uiId]["easy"] = int(row[8])
+                data[i//4][uiId]["annoy"] = int(row[9])
+                data[i//4][uiId]["useful"] = int(row[10])
+                data[i//4][uiId]["trust"] = int(row[11])
+            else:
+                data[i//4][uiId]["easy"] = int(0)
+                data[i//4][uiId]["annoy"] = int(0)
+                data[i//4][uiId]["useful"] = int(0)
+                data[i//4][uiId]["trust"] = int(0)
+            data[i//4][uiId]["notice"] = int(row[12])
+            data[i//4][uiId]["distance"] = int(row[13])
+            data[i//4][uiId]["direction"] = int(row[14])
+            data[i//4][uiId]["safe"] = int(row[15])
+            data[i//4][uiId]["vr"] = int(row[16])
+            data[i//4][uiId]["load"] = json.loads(row[17])
+            data[i//4][uiId]["comment"] = row[17]
+    
+    os.makedirs(DBDATA.format(0), exist_ok=True)
+    with open(os.path.join("bdata", "subject.pkl"), "wb") as f:
+        pickle.dump(np.array(data), f)
+        print("subject.pkl saved")           
+
     
 
 def split_subtask(userId, uiId):
@@ -193,6 +241,8 @@ def split_subtask(userId, uiId):
         masked_data["taskMistake"] = data["taskMistakeParts"][i]
         masked_data["state"] = state
         masked_data["collision_flag"] = COLLISION_FLAG[data["mapId"]][i]
+        masked_data["userId"] = userId
+        masked_data["uiId"] = uiId
         subtask_data.append(masked_data)
         
     with open(BDATA_SUBTASK.format(userId, uiId), "wb") as f:
@@ -220,6 +270,7 @@ def distance(a, b):
 
 def all_data_concat(new=False):
     all_convert_binary(new)
+    convert_subject(new)
     data = []
     for i in range(3, N):
         userData = []
@@ -235,7 +286,7 @@ def all_data_concat(new=False):
         data.append(userData)
 
     data = np.array(data)
-    with open("data/all.pkl", "wb") as f:
+    with open("bdata/all.pkl", "wb") as f:
         pickle.dump(data, f)
         print("all.pkl saved")
 
@@ -265,8 +316,18 @@ def load_subtask(userId, uiId):
         data = pickle.load(f)
     return data
 
+def load_subject(): 
+    filename = os.path.join("bdata", "subject.pkl")
+    if not os.path.exists(filename):
+        convert_subject()
+    
+    with open(filename, "rb") as f:
+        data = pickle.load(f)
+    
+    return data
+
 def load_all():
-    filename = "data/all.pkl"
+    filename = "bdata/all.pkl"
     if not os.path.exists(filename):
         all_data_concat()
     
