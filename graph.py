@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from lib import *
 
-TITLE = {"obj": "Eye tracking", "pos": "Camera Position", "qua": "Camera Quaternion", "bpm": "Heart rate", "trigger": "Button", "state": "State", "subTask": "Subtask", "warning": "Warning", "collision": "Collision"}
+TITLE = {"obj": "Eye tracking", "pos": "Camera Position", "rot": "Camera Rotation", "bpm": "Heart rate", "trigger": "Button", "state": "State", "subTask": "Subtask", "warning": "Warning", "collision": "Collision"}
 UI = ["VA", "VO", "AO", "NO"]
 OBJ_LABEL = ["Robot", "Arrow", "TaskPanel", "Shelf", "Building", "None"]
 PIC = "pic/{0}_{1}_{2:02d}_{3:01d}.png"
@@ -53,7 +53,7 @@ def barh_plot(userId, uiId, attr, target):
         r, g, b, _ = color
         text_color = 'white' if r * g * b < 0.5 else 'darkgrey'
         for y, (x, c) in enumerate(zip(xcenters, widths)):
-            if c <= 0.5: continue
+            if c <= 1: continue
             ax.text(x, y, "{0:.1f}".format(c), ha='center', va='center',
                     color=text_color)
     ax.legend(ncol=len(target), bbox_to_anchor=(0, 0),
@@ -61,7 +61,46 @@ def barh_plot(userId, uiId, attr, target):
     
     plt.subplots_adjust(left=0.05, right=0.99)
     plt.title('{0}: (User-{1:02d}, UI-{2})'.format(TITLE[attr], userId, UI[uiId]))
-    plt.savefig(PIC.format(attr, "barh", userId, uiId))
+    # plt.savefig(PIC.format(attr, "barh", userId, uiId))
+    plt.show()
+
+def barh_plot_all(userId, attr, target):
+    fig, axs = plt.subplots(nrows=4, ncols=1, figsize=(14, 13))
+
+    for uiId, ax in enumerate(axs):
+        data = load_subtask(userId, uiId)
+        tasks = [ "{0}-{1}*".format(i, ROBOT_NUM[d["state"]])  if d["collision_flag"] else "{0}-{1} ".format(i, ROBOT_NUM[d["state"]]) for i, d in enumerate(data)]
+        data = [ dict( [(label, count) for label, count in zip(*np.unique(sub[attr], return_counts=True))]) for sub in data ]
+        data = [ [dic.get(label, 0) for label in target] for dic in data]
+        data = np.array([ l/sum(l)*100 for l in data])
+        data_cum = data.cumsum(axis=1)
+        category_colors = plt.get_cmap('RdYlGn')(
+            np.linspace(0.15, 0.85, data.shape[1]))
+        
+        ax.invert_yaxis()  # labels read top-to-bottom
+        ax.xaxis.set_visible(False)  # hide the x-axis
+        ax.set_xlim(0, data.sum(axis=1).max())  # scale x-axis
+        ax.set_ylim(-1, len(tasks) -0.5)
+
+        for i, (colname, color) in enumerate(zip(target, category_colors)):
+            widths = data[:, i]
+            starts = data_cum[:, i] - widths
+            ax.barh(tasks, widths, left=starts, height=0.5,
+                    label=colname, color=color)
+            xcenters = starts + widths / 2
+
+            r, g, b, _ = color
+            text_color = 'white' if r * g * b < 0.5 else 'darkgrey'
+            for y, (x, c) in enumerate(zip(xcenters, widths)):
+                if c <= 1: continue
+                ax.text(x, y, "{0:.1f}".format(c), ha='center', va='center',
+                        color=text_color)
+        ax.text(-0.08, 0.5, UI[uiId], transform=ax.transAxes, fontsize=10, va='center')
+    
+    plt.subplots_adjust(left=0.08, right=0.99, top=0.95, bottom=0.05, hspace=0.03)
+    fig.suptitle('{0}: (User-{1:02d})'.format(TITLE[attr], userId))
+    fig.legend(target, ncol=len(target), bbox_to_anchor=(0.5, 0), loc='lower center', fontsize='small')
+    plt.savefig(PIC.format(attr, "barh", userId, 9))
     # plt.show()
 
 def robot_distance():
@@ -126,6 +165,8 @@ try:
     # calculate_change(i, j, "qua")
     # pie_plot(i, j, "obj", OBJ_LABEL)
     # barh_plot(i, j, "obj", OBJ_LABEL)
-    robot_distance()
+    # robot_distance()
+    # barh_plot(3, 0, "obj", OBJ_LABEL)
+    barh_plot_all(3, "obj", OBJ_LABEL)
 except Exception as e:
     traceback.print_exc()
