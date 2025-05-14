@@ -190,24 +190,32 @@ def convert_subject(new=False):
                 data[i//4][uiId]["useful"] = int(row[10])
                 data[i//4][uiId]["trust"] = int(row[11])
             else:
-                data[i//4][uiId]["easy"] = int(0)
-                data[i//4][uiId]["annoy"] = int(0)
-                data[i//4][uiId]["useful"] = int(0)
-                data[i//4][uiId]["trust"] = int(0)
+                data[i//4][uiId]["easy"] = int(-1)
+                data[i//4][uiId]["annoy"] = int(-1)
+                data[i//4][uiId]["useful"] = int(-1)
+                data[i//4][uiId]["trust"] = int(-1)
             data[i//4][uiId]["notice"] = int(row[12])
             data[i//4][uiId]["distance"] = int(row[13])
             data[i//4][uiId]["direction"] = int(row[14])
             data[i//4][uiId]["safe"] = int(row[15])
             data[i//4][uiId]["vr"] = int(row[16])
-            data[i//4][uiId]["load"] = json.loads(row[17])
-            data[i//4][uiId]["comment"] = row[17]
+            data[i//4][uiId]["comment"] = row[18]
+            for key, value in json.loads(row[17]).items():
+                if key == "score":
+                    data[i//4][uiId][key] = float(value)
+                else:
+                    data[i//4][uiId][key] = int(value[0])
+            # data[i//4][uiId]["load"] = json.loads(row[17])
+    
+    data_ = {
+        key: np.vectorize(lambda x: x[key])(data)
+        for key in data[0][0].keys()
+    }
     
     os.makedirs(DBDATA.format(0), exist_ok=True)
     with open(os.path.join("bdata", "subject.pkl"), "wb") as f:
-        pickle.dump(np.array(data), f)
-        print("subject.pkl saved")           
-
-    
+        pickle.dump(data_, f)
+        print("subject.pkl saved")
 
 def split_subtask(userId, uiId):
     filename = BDATA.format(userId, uiId)
@@ -246,6 +254,7 @@ def split_subtask(userId, uiId):
         masked_data["collision_flag"] = COLLISION_FLAG[data["mapId"]][i]
         masked_data["userId"] = userId
         masked_data["uiId"] = uiId
+        masked_data["label"] =  "{0:02d}-{1}".format(state, ROBOT_NUM[state]) + ("*" if masked_data["collision_flag"] else " ")
         subtask_data.append(masked_data)
         
     with open(BDATA_SUBTASK.format(userId, uiId), "wb") as f:
@@ -275,13 +284,14 @@ def all_data_concat(new=False):
     all_convert_binary(new)
     convert_subject(new)
     data = []
-    for i in range(3, N):
+    for i in range(0, N):
         userData = []
         for j in range(0, 4):
             try:
-                subtask_data = load_subtask(i, j)
-                if subtask_data is None:
-                    continue
+                if i <= 2:
+                    subtask_data = [None] * 9
+                else:
+                    subtask_data = load_subtask(i, j)
                 userData.append(subtask_data)
             except Exception as e:
                 print("Error {0:02d}_{1:1d}: {2}".format(i, j, e))
@@ -314,9 +324,13 @@ def load_subtask(userId, uiId):
         except Exception as e:
             print("Error {0:02d}_{1:1d}: {2}".format(userId, uiId, e))
             return None
+    try:
+        with open(filename, "rb") as f:
+            data = pickle.load(f)
+    except Exception as e:
+        print("Error {0:02d}_{1:1d}: {2}".format(userId, uiId, e))
+        return None
     
-    with open(filename, "rb") as f:
-        data = pickle.load(f)
     return data
 
 def load_subject(): 
@@ -339,4 +353,7 @@ def load_all():
     
     return data
 
-# all_convert_binary()
+def new():
+    all_data_concat(new=True)
+    convert_subject(new=True)
+    print("all data converted")
