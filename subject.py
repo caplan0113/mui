@@ -6,7 +6,7 @@ from scipy.stats import spearmanr
 from itertools import combinations
 
 FIGSIZE = (8, 6)
-PATH = "pic/subject/{0}.png"
+PATH = "pic/subjective/{0}.png"
 SAVE = False
 UI_LABEL = ["VA", "VO", "AO", "NO"]
 
@@ -90,19 +90,20 @@ def scatter_plot(attr1, attr2, figsize=FIGSIZE, save=SAVE, pdf=None):
     plt.close()
 
 def all_scatter_plot():
-    pdf = PdfPages("pdf/subject_scatter.pdf")
+    pdf = PdfPages("pdf/subjective_scatter.pdf")
     for attr1, attr2 in combinations(list(KEY.keys()), 2):
         scatter_plot(attr1, attr2, pdf=pdf, save=False)
+    pdf.close()
+
+def all_box_plot():
+    pdf = PdfPages("pdf/subjective_box.pdf")
+    for attr in KEY.keys():
+        box_plot(attr, pdf=pdf, save=False)
     pdf.close()
     
 if __name__ == "__main__":
     data = load_subject()
-    # box_plot("mental")
-    pdf = PdfPages("pdf/subject_box.pdf")
-    for attr in KEY.keys():
-        box_plot(attr, pdf=pdf, save=False)
-    pdf.close()
-    # box_plot("easy")
+    # all_box_plot()
 
 
     # for r in all_corr():

@@ -229,27 +229,26 @@ def split_subtask(userId, uiId):
     with open(filename, "rb") as f:
         data = pickle.load(f)
 
-    states = []
-    for state in data["state"]:
-        if len(states) == 0 or states[-1] != state:
-            states.append(state)
-    
+    diff = np.diff(data["subTask"].astype(int), append=False)
+    start_idxs = np.where(diff == 1)[0] + 1
+    end_idxs = np.where(diff == -1)[0] + 1
+   
     subtask_data = []
-    for i, state in enumerate(states):
-        mask = (data["state"] == state) & data["subTask"]
+    for i, (st, ed) in enumerate(zip(start_idxs, end_idxs)):
         masked_data = dict()
         for key in data.keys():
             if key == "robot":
                 masked_data["robot"] = [dict() for _ in range(6)]
                 for j in range(6):
                     for k in data["robot"][j]:
-                        masked_data[key][j][k] = data[key][j][k][mask]
+                        masked_data[key][j][k] = data[key][j][k][st:ed]
             elif key not in KEY_INFO:
-                masked_data[key] = data[key][mask]
+                masked_data[key] = data[key][st:ed]
         
         masked_data["taskTime"] = data["taskTimeParts"][i]
         masked_data["taskCollision"] = data["taskCollisionParts"][i]
         masked_data["taskMistake"] = data["taskMistakeParts"][i]
+        state = data["state"][st]
         masked_data["state"] = state
         masked_data["collision_flag"] = COLLISION_FLAG[data["mapId"]][i]
         masked_data["userId"] = userId
@@ -282,7 +281,6 @@ def distance(a, b):
 
 def all_data_concat(new=False):
     all_convert_binary(new)
-    convert_subject(new)
     data = []
     for i in range(0, N):
         userData = []
