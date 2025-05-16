@@ -7,12 +7,45 @@ TITLE = {"obj": "Eye tracking", "pos": "Camera Position", "rot": "Camera Rotatio
 UI = ["VA", "VO", "AO", "NO"]
 OBJ_LABEL = ["Robot", "Arrow", "TaskPanel", "Shelf", "Building", "None"]
 OBJ_COLOR = {"Robot": "red", "Arrow": "blue", "TaskPanel": "yellow", "Shelf": "green", "Building": "grey", "None": "grey"}
-PATH = "pic/{0}_{1:02d}_{2:01d}.{3}"
-TYPE = "png"
+PATH = "pic/{0}/{1:02d}_{2:01d}.png"
 DPI = 300
 SAVE = False
 FIGSIZE = (11.69, 8.27)
 PPATH = "pdf/{0}.pdf"
+TASK_TILE = [ # X, Z
+    (23, 24),
+    (20, 35),
+    (20, 12),
+    (13.5, 24),
+    (10, 35),
+    (10, 12),
+    (7, 24),
+    (20, 35),
+    (20, 12),
+    (10, 35),
+    (10, 12)
+]
+
+TASK_LIM = [ # rot, (xmin, xmax), (zmin, zmax)
+    (0, (20 ,24), (21, 28)),
+    (1, (17, 24), (32, 36)),
+    (2, (17, 24), (12, 16)),
+    (3, (13.5, 17.5), (21, 28)),
+    (1, (7, 14), (32, 36)),
+    (2, (7, 14), (12, 16)),
+    (3, (7, 11), (21, 28)),
+    (1, (17, 24), (32, 36)),
+    (2, (17, 24), (12, 16)),
+    (1, (7, 14), (32, 36)),
+    (2, (7, 14), (12, 16))
+]
+
+TASK_ROBOT = [
+    [],
+    [[((0, 1), (3/4, 1))], [((0, 1), (0, 1/4))]],
+    [[((0, 1), (3/4, 1)), ((3/7, 4/7), (0, 3.5/4)), ((6/7, 1), (0, 3.5/4))], [((0, 1.5/7), (3/4, 1)), ((6/7, 1), (0, 3.5/4))]],
+    [[((0, 1), (3/4, 1)), ((3/7, 4/7), (0, 3.5/4)), ((6/7, 1), (0, 3.5/4)), ((0, 1), (0.5/4, 1.5/4))], [((0, 1.5/7), (3/4, 1)), ((6/7, 1), (0, 3.5/4)), ((0, 1), (0.5/4, 1.5/4))]]
+]
 
 def pie_plot(id, uiId, attr, target = None):
     data = load_subtask(id, uiId)
@@ -111,13 +144,12 @@ def barh_plot_all(userId, attr, target=OBJ_LABEL, figsize=FIGSIZE, save=SAVE, pd
     fig.legend(target, ncol=len(target), bbox_to_anchor=(0.5, 0), loc='lower center', fontsize='small')
 
     if save:
-        plt.savefig(PATH.format(attr+"_barh", userId, 9, TYPE), dpi=DPI)
+        plt.savefig(PATH.format(attr+"_barh", userId, 9), dpi=DPI)
     elif pdf:
         pdf.savefig(fig)
     else:
         plt.show()
     plt.close()
-    
 
 def robot_distance(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     subtaskData = all[userId, uiId]
@@ -146,7 +178,7 @@ def rot_y_diff(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
 def rot_y_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save: str =None, pdf=None):
     subtaskData = all[userId, uiId]
     plot_data = [ np.concatenate([np.full(n, 0), (data["rot"][n:] - data["rot"][:-n])[:, 1]]) for data in subtaskData ]
-    time_series_plot(f"Rotation_y Diff [{n} frame]", plot_data, subtaskData, figsize=figsize, save=save, pdf=pdf)
+    time_series_plot(f"Rotation_y Diff [{n} frame]", plot_data, subtaskData, ylim=(-15.5, 15.5), figsize=figsize, save=save, pdf=pdf)
 
 def bpm(userId, uiId, figsize=FIGSIZE, save:str =None, pdf=None):
     subtaskData = all[userId, uiId]
@@ -181,7 +213,8 @@ def time_series_plot(name:str, plot_data, subtaskData, ylim: tuple[float, float]
 
     plt.tight_layout()
     if save:
-        plt.savefig(PATH.format(save, subtaskData[0]["userId"], subtaskData[1]["uiId"], TYPE), dpi=DPI)
+        os.makedirs(f"pic/{save}", exist_ok=True)
+        plt.savefig(PATH.format(save, subtaskData[0]["userId"], subtaskData[1]["uiId"]), dpi=DPI)
     elif pdf:
         pdf.savefig(fig)
     else:
@@ -194,11 +227,11 @@ def obj_bgcolor(ax, x, obj_list):
     for t, obj in zip(x, obj_list):
         if obj != prev:
             if prev == "Robot" or prev == "Arrow":
-                ax.axvspan(pt, t, facecolor=OBJ_COLOR[prev], alpha=0.5)
+                ax.axvspan(pt, t, facecolor=OBJ_COLOR[prev], alpha=0.3)
             prev = obj
             pt = t
     if prev == "Robot" or prev == "Arrow":
-        ax.axvspan(pt, x[-1], facecolor=OBJ_COLOR[prev], alpha=0.5)
+        ax.axvspan(pt, x[-1], facecolor=OBJ_COLOR[prev], alpha=0.3)
 
 def warning_bgcolor(ax, x, warning_list):
     prev = warning_list[0]
@@ -206,11 +239,11 @@ def warning_bgcolor(ax, x, warning_list):
     for t, obj in zip(x, warning_list):
         if obj != prev:
             if prev != 0:
-                ax.axvspan(pt, t, 0, prev*0.1, facecolor="green", alpha=0.5)
+                ax.axvspan(pt, t, 0, prev*0.15, facecolor="green", alpha=0.5)
             prev = obj
             pt = t
     if prev != 0:
-        ax.axvspan(pt, x[-1], 0, prev*0.1, facecolor="green", alpha=0.5)
+        ax.axvspan(pt, x[-1], 0, prev*0.15, facecolor="green", alpha=0.5)
 
 def collision_plot(ax, x, collision_list, xmax=None):
     if not xmax:
@@ -240,34 +273,120 @@ def calculate_change(userId, uiId, attr):
 
         print("({0}, {1}, {2}) Total change: {3}, Average change: {4})".format(userId, uiId, i, total_change, average_change))
 
-def save_pdf(func, userIdRange=range(3, N), uiIdRange=range(0, 4)):
+def save_pdf(func, args=dict(), userIdRange=range(3, N), uiIdRange=range(0, 4)):
     pdf_path = PPATH.format(func.__name__)
     pdf = PdfPages(pdf_path)
     try: 
         for userId in userIdRange:
             for uiId in uiIdRange:
-                func(userId, uiId, pdf=pdf)
+                func(userId, uiId, pdf=pdf, **args)
     except Exception as e:
         print("Error in {0}: {1}".format(func.__name__, e))
     pdf.close()
 
-def show_plot(func, userIdRange=range(3, N), uiIdRange=range(0, 4)):
+def show_plot(func, args=dict(), userIdRange=range(3, N), uiIdRange=range(0, 4)):
     try:
         for userId in userIdRange:
             for uiId in uiIdRange:
-                func(userId, uiId)
+                func(userId, uiId, **args)
     except Exception as e:
         print("Error in {0}: {1}".format(func.__name__, e))
         traceback.print_exc()
 
-def save_pic(func, userIdRange=range(3, N), uiIdRange=range(0, 4)):
+def save_pic(func, args=dict(), userIdRange=range(3, N), uiIdRange=range(0, 4)):
     for userId in userIdRange:
         for uiId in uiIdRange:
             try:
-                func(userId, uiId, save=func.__name__)
+                func(userId, uiId, save=func.__name__, **args)
             except Exception as e:
                 print("Error in {0}: {1}".format(func.__name__, e))
                 traceback.print_exc()
+
+def diff_rot_y_n(userId, uiId, n:int):
+    subtaskData = all[userId, uiId]
+    data = [ np.abs((data["rot"][n:] - data["rot"][:-n])[:, 1]) for data in subtaskData ]
+    mean_data = np.mean([ np.sum(d) for d in data ])
+    fig = plt.figure(figsize=(7, 6))
+    ax = fig.add_subplot(111)
+    ax.boxplot(data)
+    plt.show()
+
+def map_func(func, args=dict(), userIdRange=range(3, N), uiIdRange=range(0, 4)):
+    for userId in userIdRange:
+        for uiId in uiIdRange:
+            try:
+                func(userId, uiId, **args)
+            except Exception as e:
+                print("Error in {0}: {1}".format(func.__name__, e))
+                traceback.print_exc()
+
+def pos_xz(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
+    subtaskData = all[userId, uiId]
+
+    fig, axs = plt.subplots(nrows=3, ncols=3, figsize=figsize)
+    axs = axs.flatten()
+    fig.subplots_adjust(hspace=0.3, left=0, right=1, top=0.9, wspace=0, bottom=0.05)
+    fig.suptitle("Position XZ: User-{0:02d}, UI-{1}".format(userId, UI[uiId]))
+
+    for i, ax in enumerate(axs):
+        x, z = subtaskData[i]["pos"][:, 0], subtaskData[i]["pos"][:, 2]
+        s, xlim, zlim = TASK_LIM[subtaskData[i]["state"]]
+        if s == 0:
+            px, py = z, x
+            x_lim = zlim; y_lim = xlim
+            xlabel = "Z"; ylabel = "X"
+        elif s == 1:
+            px, py = x, z
+            x_lim = xlim; y_lim = zlim
+            xlabel = "X"; ylabel = "Z"
+        elif s == 2:
+            px, py = x, z
+            x_lim = xlim; y_lim = zlim
+            xlabel = "X"; ylabel = "Z"
+        else:
+            px, py = z, x
+            x_lim = zlim; y_lim = xlim
+            xlabel = "Z"; ylabel = "X"
+        
+        ax.set_xlim(x_lim)
+        ax.set_ylim(y_lim)
+        ax.set_xticks(np.arange(x_lim[0], x_lim[1]+1, 1))
+        ax.set_yticks(np.arange(y_lim[0], y_lim[1]+1, 1))
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+        ax.grid(True, which='both', linestyle='--', linewidth=0.5)
+        # ax.set_xlabel(xlabel)
+        # ax.set_ylabel(ylabel)
+        ax.set_aspect("equal")
+
+        if s == 0:
+            ax.invert_xaxis()
+        elif s == 2:
+            ax.invert_xaxis()
+            ax.invert_yaxis()
+        elif s == 3:
+            ax.invert_yaxis()
+
+        ax.plot(px, py)
+        task_bgcolor(ax, x_lim, ROBOT_NUM[subtaskData[i]["state"]], subtaskData[i]["collision_flag"])
+        ax.set_title("Subtask {0}".format(subtaskData[i]["label"]))
+
+    plt.show()
+    plt.close()
+
+def task_bgcolor(ax, xlim, robot_num, collision_flag):
+    xmin, xmax = xlim
+    ax.axvspan(xmin+3, xmax-3, 3/4, 1, facecolor="green", alpha=0.5)
+    robots = TASK_ROBOT[robot_num][not collision_flag]
+
+    for x, y in robots:
+        x1, x2 = x; y1, y2 = y
+        x1 = xmin + (xmax - xmin) * x1
+        x2 = xmin + (xmax - xmin) * x2
+        ax.axvspan(x1, x2, y1, y2, edgecolor="red", fill=False, hatch="/")
+
+
+
 
 if __name__ == "__main__":
     try:
@@ -284,9 +403,12 @@ if __name__ == "__main__":
         # robot_distance(3, 0)
         # rot_y_diff_plot(3, 0)
         # save_pdf(bpm)
-        show_plot(lambda x, y: rot_y_diff_n(x, y, 5))
+        # save_pdf(rot_y_diff_n, args=dict(n=5))
         # rot_y_diff(3, 3)
         # rot_y_diff_n(3, 3, 10)
+        # map_func(pos_xz, args=dict())
+        pos_xz(3, 0)
+
         pass
     except Exception as e:
         traceback.print_exc()

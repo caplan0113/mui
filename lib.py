@@ -55,7 +55,7 @@ data = [
         "rot": np.array(), # camera rotation
         "bpm": np.array(), # heart rate
         "trigger": np.array(), # button pressed
-        "state": np.array(), # state
+        "state": int, # state
         "subTask": np.array(), # subtask
         "warning": np.array(), # warning
         "collision": np.array(), # collision
@@ -95,6 +95,7 @@ data = [
         "taskTime": float, # task time
         "taskCollision": int, # task collision
         "taskMistake": int, # task mistake
+        "collision_flag": bool, # collision flag
     }, 
 ]
 """
