@@ -42,9 +42,9 @@ TASK_LIM = [ # rot, (xmin, xmax), (zmin, zmax)
 
 TASK_ROBOT = [
     [],
-    [[((0, 1), (3/4, 1))], [((0, 1), (0, 1/4))]],
-    [[((0, 1), (3/4, 1)), ((3/7, 4/7), (0, 3.5/4)), ((6/7, 1), (0, 3.5/4))], [((0, 1.5/7), (3/4, 1)), ((6/7, 1), (0, 3.5/4))]],
-    [[((0, 1), (3/4, 1)), ((3/7, 4/7), (0, 3.5/4)), ((6/7, 1), (0, 3.5/4)), ((0, 1), (0.5/4, 1.5/4))], [((0, 1.5/7), (3/4, 1)), ((6/7, 1), (0, 3.5/4)), ((0, 1), (0.5/4, 1.5/4))]]
+    [[("red", (0, 1), (3/4, 1))], [("red", (0, 1), (0, 1/4))]],
+    [[("red", (0, 1), (3/4, 1)), ("magenta", (3/7, 4/7), (0, 3.5/4)), ("magenta", (6/7, 1), (0, 3.5/4))], [("red", (0, 1.5/7), (3/4, 1)), ("magenta", (6/7, 1), (0, 3.5/4))]],
+    [[("red", (0, 1), (3/4, 1)), ("magenta", (3/7, 4/7), (0, 3.5/4)), ("magenta", (6/7, 1), (0, 3.5/4)), ("orange", (0, 1), (0.5/4, 1.5/4))], [("red", (0, 1.5/7), (3/4, 1)), ("magenta", (6/7, 1), (0, 3.5/4)), ("orange", (0, 1), (0.5/4, 1.5/4))]]
 ]
 
 def pie_plot(id, uiId, attr, target = None):
@@ -358,6 +358,7 @@ def pos_xz(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
         # ax.set_xlabel(xlabel)
         # ax.set_ylabel(ylabel)
         ax.set_aspect("equal")
+        
 
         if s == 0:
             ax.invert_xaxis()
@@ -366,24 +367,36 @@ def pos_xz(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
             ax.invert_yaxis()
         elif s == 3:
             ax.invert_yaxis()
+        
+        task_bgcolor(ax, x_lim, s, ROBOT_NUM[subtaskData[i]["state"]], subtaskData[i]["collision_flag"])
 
         ax.plot(px, py)
-        task_bgcolor(ax, x_lim, ROBOT_NUM[subtaskData[i]["state"]], subtaskData[i]["collision_flag"])
+        
         ax.set_title("Subtask {0}".format(subtaskData[i]["label"]))
 
-    plt.show()
+    if save:
+        os.makedirs(f"pic/{save}", exist_ok=True)
+        plt.savefig(PATH.format(save, subtaskData[0]["userId"], subtaskData[1]["uiId"]), dpi=DPI)
+    elif pdf:
+        pdf.savefig(fig)
+    else:
+        plt.show()
     plt.close()
 
-def task_bgcolor(ax, xlim, robot_num, collision_flag):
+def task_bgcolor(ax, xlim, s, robot_num, collision_flag):
     xmin, xmax = xlim
     ax.axvspan(xmin+3, xmax-3, 3/4, 1, facecolor="green", alpha=0.5)
     robots = TASK_ROBOT[robot_num][not collision_flag]
 
-    for x, y in robots:
+    for c, x, y in robots:
         x1, x2 = x; y1, y2 = y
-        x1 = xmin + (xmax - xmin) * x1
-        x2 = xmin + (xmax - xmin) * x2
-        ax.axvspan(x1, x2, y1, y2, edgecolor="red", fill=False, hatch="/")
+        if s % 2 == 0:
+            xs = xmax - (xmax - xmin) * x1
+            xe = xmax - (xmax - xmin) * x2
+        else:
+            xs = xmin + (xmax - xmin) * x1
+            xe = xmin + (xmax - xmin) * x2
+        ax.axvspan(xs, xe, y1, y2, edgecolor=c, fill=False, hatch="/")
 
 
 
@@ -403,11 +416,11 @@ if __name__ == "__main__":
         # robot_distance(3, 0)
         # rot_y_diff_plot(3, 0)
         # save_pdf(bpm)
-        # save_pdf(rot_y_diff_n, args=dict(n=5))
+        save_pdf(pos_xz, args=dict())
         # rot_y_diff(3, 3)
         # rot_y_diff_n(3, 3, 10)
         # map_func(pos_xz, args=dict())
-        pos_xz(3, 0)
+        # pos_xz(3, 0)
 
         pass
     except Exception as e:
