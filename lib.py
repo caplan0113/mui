@@ -260,7 +260,6 @@ def split_subtask(userId, uiId):
     with open(BDATA_SUBTASK.format(userId, uiId), "wb") as f:
         pickle.dump(subtask_data, f)
         
-
 def all_convert_binary(new=False):
     for i in range(3, N):
         for j in range(0, 5):
