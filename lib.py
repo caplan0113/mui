@@ -50,23 +50,23 @@ data = [
         "lg_rot": np.array(), # left hand rotation
         "rg_pos": np.array(), # right hand position
         "rg_rot": np.array(), # right hand rotation
-        "obj": np.array(), # object name
+        "obj": np.array(str), # object name
         "pos": np.array(), # camera position
         "rot": np.array(), # camera rotation
-        "bpm": np.array(), # heart rate
-        "trigger": np.array(), # button pressed
+        "bpm": np.array(int), # heart rate
+        "trigger": np.array(bool), # button pressed
         "state": int, # state
-        "subTask": np.array(), # subtask
-        "warning": np.array(), # warning
-        "collision": np.array(), # collision
+        "subTask": np.array(bool), # subtask
+        "warning": np.array(int), # warning
+        "collision": np.array(bool), # collision
         "robot": [ # robot data
             {
-                "r_id": np.array(), # robot id
+                "r_id": np.array(int), # robot id
                 "pos": np.array(), # robot position
                 "rot_y": np.array() # robot rotation
             },
             {
-                "r_id": np.array(),
+                "r_id": np.array(int),
                 "pos": np.array(),
                 "rot_y": np.array()
             },
@@ -91,11 +91,15 @@ data = [
                 "rot_y": np.array()
             }
         ],
-        "robot_cnt": np.array(), # robot count
+        "robot_cnt": np.array(int), # robot count
+        
         "taskTime": float, # task time
         "taskCollision": int, # task collision
         "taskMistake": int, # task mistake
         "collision_flag": bool, # collision flag
+        "label": str, # label
+        "userId": int, # user id
+        "uiId": int # ui id
     }, 
 ]
 """
@@ -275,9 +279,9 @@ def all_convert_binary(new=False):
                 traceback.print_exc()
 
 def distance(a, b):
-    a = [a[0], 0, a[2]]
-    b = [b[0], 0, b[2]]
-    return np.linalg.norm(np.array(a) - np.array(b))
+    a *= [1, 0, 1]
+    b *= [1, 0, 1]
+    return np.linalg.norm(np.array(a) - np.array(b), axis=1)
 
 def all_data_concat(new=False):
     all_convert_binary(new)

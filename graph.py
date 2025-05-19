@@ -184,6 +184,21 @@ def bpm(userId, uiId, figsize=FIGSIZE, save:str =None, pdf=None):
     subtaskData = all[userId, uiId]
     time_series_plot("Heart Rate", [data["bpm"] for data in subtaskData], subtaskData, figsize=figsize, save=save, pdf=pdf)
 
+def pos_x_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save:str =None, pdf=None):
+    subtaskData = all[userId, uiId]
+    plot_data = [ np.concatenate([np.full(n, 0), (data["pos"][n:] - data["pos"][:-n])[:, 0]]) for data in subtaskData ]
+    time_series_plot(f"Position X Diff [{n} frame]", plot_data, subtaskData, ylim=(-0.5, 0.5), figsize=figsize, save=save, pdf=pdf)
+
+def pos_z_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save:str =None, pdf=None):
+    subtaskData = all[userId, uiId]
+    plot_data = [ np.concatenate([np.full(n, 0), (data["pos"][n:] - data["pos"][:-n])[:, 2]]) for data in subtaskData ]
+    time_series_plot(f"Position Z Diff [{n} frame]", plot_data, subtaskData, ylim=(-0.5, 0.5), figsize=figsize, save=save, pdf=pdf)
+
+def pos_xz_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save:str =None, pdf=None):
+    subtaskData = all[userId, uiId]
+    plot_data = [ np.concatenate([np.full(n, 0), distance(data["pos"][n:], data["pos"][:-n])]) for data in subtaskData ]
+    time_series_plot(f"Position XZ Diff [{n} frame]", plot_data, subtaskData, ylim=(-0.1, 0.3), figsize=figsize, save=save, pdf=pdf)
+
 def time_series_plot(name:str, plot_data, subtaskData, ylim: tuple[float, float]=None, xlim:tuple[float, float]=None, figsize:tuple[float, float]=FIGSIZE, save: str=None, pdf=None):
     fig, axs = plt.subplots(nrows=9, ncols=1, figsize=figsize)
     fig.suptitle("{0}: User-{1:02d}, UI-{2}".format(name, subtaskData[0]["userId"], UI[subtaskData[0]["uiId"]]))
@@ -330,21 +345,26 @@ def pos_xz(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
 
     for i, ax in enumerate(axs):
         x, z = subtaskData[i]["pos"][:, 0], subtaskData[i]["pos"][:, 2]
+        cx, cz = subtaskData[i]["pos"][:, 0][subtaskData[i]["collision"]], subtaskData[i]["pos"][:, 2][subtaskData[i]["collision"]]
         s, xlim, zlim = TASK_LIM[subtaskData[i]["state"]]
         if s == 0:
             px, py = z, x
+            pcx, pcy = cz, cx
             x_lim = zlim; y_lim = xlim
             xlabel = "Z"; ylabel = "X"
         elif s == 1:
             px, py = x, z
+            pcx, pcy = cx, cz
             x_lim = xlim; y_lim = zlim
             xlabel = "X"; ylabel = "Z"
         elif s == 2:
             px, py = x, z
+            pcx, pcy = cx, cz
             x_lim = xlim; y_lim = zlim
             xlabel = "X"; ylabel = "Z"
         else:
             px, py = z, x
+            pcx, pcy = cz, cx
             x_lim = zlim; y_lim = xlim
             xlabel = "Z"; ylabel = "X"
         
@@ -359,7 +379,6 @@ def pos_xz(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
         # ax.set_ylabel(ylabel)
         ax.set_aspect("equal")
         
-
         if s == 0:
             ax.invert_xaxis()
         elif s == 2:
@@ -370,7 +389,18 @@ def pos_xz(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
         
         task_bgcolor(ax, x_lim, s, ROBOT_NUM[subtaskData[i]["state"]], subtaskData[i]["collision_flag"])
 
-        ax.plot(px, py)
+        mask0, mask1, mask2, mask3 = subtaskData[i]["warning"]==0, subtaskData[i]["warning"]==1, subtaskData[i]["warning"]==2, subtaskData[i]["warning"]==3
+        px0, py0 = px[mask0], py[mask0]
+        px1, py1 = px[mask1], py[mask1]
+        px2, py2 = px[mask2], py[mask2]
+        px3, py3 = px[mask3], py[mask3]
+        ax.scatter(px0, py0, color="green", s=1, zorder=1)
+        ax.scatter(px1, py1, color="gold", s=1, zorder=1)
+        ax.scatter(px2, py2, color="darkorange", s=1, zorder=1)
+        ax.scatter(px3, py3, color="red", s=1, zorder=1)
+        
+        # ax.scatter(px, py, zorder=1, s=1)
+        ax.scatter(pcx, pcy, color="red", marker="*", s=50, zorder=2) # collision
         
         ax.set_title("Subtask {0}".format(subtaskData[i]["label"]))
 
@@ -396,10 +426,7 @@ def task_bgcolor(ax, xlim, s, robot_num, collision_flag):
         else:
             xs = xmin + (xmax - xmin) * x1
             xe = xmin + (xmax - xmin) * x2
-        ax.axvspan(xs, xe, y1, y2, edgecolor=c, fill=False, hatch="/")
-
-
-
+        ax.axvspan(xs, xe, y1, y2, edgecolor=c, fill=False, hatch="/", alpha=0.5, lw=1)
 
 if __name__ == "__main__":
     try:
@@ -416,11 +443,12 @@ if __name__ == "__main__":
         # robot_distance(3, 0)
         # rot_y_diff_plot(3, 0)
         # save_pdf(bpm)
-        save_pdf(pos_xz, args=dict())
+        # save_pdf(pos_xz, args=dict())
         # rot_y_diff(3, 3)
         # rot_y_diff_n(3, 3, 10)
         # map_func(pos_xz, args=dict())
-        # pos_xz(3, 0)
+        pos_xz(3, 0)
+        # pos_xz_diff_n(3, 0, 10)
 
         pass
     except Exception as e:

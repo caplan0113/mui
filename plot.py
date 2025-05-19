@@ -10,16 +10,6 @@ allData = load_all()
 # Dash アプリの初期化
 app = dash.Dash(__name__)
 
-# ベクトルのアニメーション用データ生成
-num_frames = 100
-t = np.linspace(0, 2 * np.pi, num_frames)
-
-# ベクトル（時間に伴って変化する）
-vectors = np.array([
-    [np.cos(theta), np.sin(theta), 0.5 * np.sin(2 * theta)]
-    for theta in t
-])
-
 # 3D ベクトル表示用の関数
 def create_figure(data):
     pos = data["pos"]; rot = data["rot"]
@@ -101,18 +91,85 @@ def create_figure(data):
     )
     return fig
 
+def create_figure_2d(data):
+    pos = data["pos"]
+    rot = data["rot"]
+    vec = [R.from_euler("xyz", r, degrees=True).apply([0, 0, 1]) for r in rot]
+
+    x = [p[0] for p in pos]
+    z = [p[2] for p in pos]
+    u = [v[0] for v in vec]
+    w = [v[2] for v in vec]
+
+    fig = go.Figure()
+
+    # 最初の矢印（ベクトル）をプロット
+    fig.add_trace(go.Scatter(
+        x=[x[0], x[0] + u[0]],
+        y=[z[0], z[0] + w[0]],
+        mode="lines+markers",
+        marker=dict(size=5),
+        line=dict(width=2, color='blue'),
+        name="Vector"
+    ))
+
+    # アニメーションフレームを作成
+    frames = []
+    for i in range(len(data["time"])):
+        frames.append(go.Frame(
+            data=[go.Scatter(
+                x=[x[i], x[i] + u[i]],
+                y=[z[i], z[i] + w[i]],
+                mode="lines+markers",
+                marker=dict(size=5),
+                line=dict(width=2, color='blue')
+            )],
+            name=f"{data['time'][i]}"
+        ))
+
+    fig.frames = frames
+
+    # アニメーションUI
+    fig.update_layout(
+        xaxis=dict(title="X", scaleanchor="y", scaleratio=1, range=[0, 30]),
+        yaxis=dict(title="Z", range=[10, 30]),
+        margin=dict(l=20, r=20, t=20, b=20),
+        updatemenus=[dict(
+            type="buttons",
+            showactive=False,
+            buttons=[
+                dict(label="Play", method="animate",
+                     args=[None, {"frame": {"duration": 16, "redraw": True}, "fromcurrent": True}]),
+                dict(label="Pause", method="animate",
+                     args=[[None], {"frame": {"duration": 0, "redraw": False}, "mode": "immediate"}])
+            ],
+            x=0.1, y=0
+        )],
+        sliders=[dict(
+            steps=[dict(method="animate",
+                        args=[[f"{t}"], {"mode": "immediate", "frame": {"duration": 16, "redraw": True}}],
+                        label=str(t)) for t in data["time"]],
+            x=0.1,
+            y=-0.1,
+            currentvalue=dict(visible=True)
+        )]
+    )
+
+    return fig
+
+
 # 初期ベクトル
-initial_vector = allData[0][0][0]
+initial_vector = allData[3][0][0]
 
 # レイアウト
 app.layout = html.Div([
     html.Div([
         "User-ID: ", dcc.Input(id="userId", type="number", value=3, step=1, min="3", max="6", style={'width': '50px'}),
-        "UI-ID: ", dcc.Input(id="uiId", type="number", value=1, step=1, min="0", max="3", style={'width': '50px'}),
-        "Task-ID: ", dcc.Input(id="taskId", type="number", value=1, step=1, min="0", max="8", style={'width': '50px'})
+        "UI-ID: ", dcc.Input(id="uiId", type="number", value=0, step=1, min="0", max="3", style={'width': '50px'}),
+        "Task-ID: ", dcc.Input(id="taskId", type="number", value=0, step=1, min="0", max="8", style={'width': '50px'})
     ]),
     html.Div(id='error-message', style={'color': 'red'}),
-    dcc.Graph(id='vector-graph', figure=create_figure(initial_vector))
+    dcc.Graph(id='vector-graph', figure=create_figure_2d(initial_vector))
 ])
 
 # 入力されたベクトルに基づいて図を更新するコールバック
@@ -128,8 +185,8 @@ def update_vector(userId, uiId, taskId):
         # ベクトル成分を入力から取得
         if userId is None or uiId is None or taskId is None:
             raise ValueError("すべてのフィールドに値を入力してください")
-        userId = int(userId)-3; uiId = int(uiId); taskId = int(taskId)
-        return create_figure(allData[userId][uiId][taskId]), ""
+        userId = int(userId); uiId = int(uiId); taskId = int(taskId)
+        return create_figure_2d(allData[userId][uiId][taskId]), ""
     except Exception as e:
         traceback.print_exc()
         return dash.no_update, f"⚠️ 入力エラー: {str(e)}"

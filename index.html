@@ -1,0 +1,166 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>XZ Vector Animation</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+  <style>
+    body { margin: 0; background: #fff; font-family: sans-serif; }
+    
+    #data-select { position: relative; top: 10px; left: 10px; background: #eee; padding: 10px; border-radius: 8px; margin: 10px; width: max-content;}
+    #controls { position: relative; top: 10px; left: 10px; background: #eee; padding: 10px; border-radius: 8px; margin: 10px; width: max-content;}
+  </style>
+</head>
+<body>
+  <div id="data-select">
+    <p>user-id: <input type="number" id="user-id" min="3" max="6" step="1" value="3"></p> 
+    <p>ui-id: <input type="number" id="ui-id" min="0" max="3" step="1" value="0"></p>
+    <p>subtask-id: <input type="number" id="subtask-id" min="0" max="8" step="1" value="0"> </p>
+    <button id="loadBtn">Load</button>
+  </div>
+  <div id="controls">
+    <button id="playBtn">Play</button>
+    <button id="pauseBtn">Pause</button>
+    <input id="slider" type="range" min="0" max="1000" value="0" step="1" style="width:200px;">
+    <span id="timeLabel">0</span>
+  </div>
+
+  <script>
+    let frames = [];
+    let currentFrame = 0;
+    let playing = false;
+
+    function preload() {
+        let userId = document.getElementById("user-id").value;
+        let uiId = document.getElementById("ui-id").value;
+        let subtaskId = document.getElementById("subtask-id").value;
+        const params = new URLSearchParams({
+          userId: userId,
+          uiId: uiId,
+          subtaskId: subtaskId
+        });
+        loadJSON(`http://localhost:8000/data?${params.toString()}`, data => {
+          frames = data;
+          currentFrame = 0;
+          playing = false;
+          document.getElementById("slider").max = frames.length - 1;
+          document.getElementById("slider").value = currentFrame;
+          document.getElementById("timeLabel").innerText = frames[currentFrame].time.toFixed(3);
+        });
+    }
+
+    function setup() {
+      createCanvas(600, 400);
+      frameRate(60);
+
+      document.getElementById("playBtn").onclick = () => playing = true;
+      document.getElementById("pauseBtn").onclick = () => playing = false;
+      document.getElementById("slider").oninput = (e) => {
+        currentFrame = int(e.target.value);
+        playing = false;
+        document.getElementById("timeLabel").innerText = frames[currentFrame].time.toFixed(3);
+      };
+      document.getElementById("loadBtn").onclick = () => {
+        playing = false;
+        let userId = document.getElementById("user-id").value;
+        let uiId = document.getElementById("ui-id").value;
+        let subtaskId = document.getElementById("subtask-id").value;
+
+        const params = new URLSearchParams({
+          userId: userId,
+          uiId: uiId,
+          subtaskId: subtaskId
+        });
+        loadJSON(`http://localhost:8000/data?${params.toString()}`, data => {
+          frames = data;
+          currentFrame = 0;
+          playing = false;
+          document.getElementById("slider").max = frames.length - 1;
+          document.getElementById("slider").value = currentFrame;
+          document.getElementById("timeLabel").innerText = frames[currentFrame].time.toFixed(3);
+        });
+        return;
+      };
+    }
+
+    function draw() {
+        background(255);
+        if (frames.length === 0) return;
+
+        // 同じ比率で表示するために、描画領域は正方形に設定
+        // 例えば、中心を(300, 200)、幅・高さを200ピクセルに設定
+        let originX = 300;
+        let originZ = 200;
+        let size = 200;  // 正方形の1辺の長さ
+
+        // --- グリッドの描画 ---
+        stroke(220);
+        strokeWeight(1);
+        let gridCount = 10;
+
+        for (let i = 0; i <= gridCount; i++) {
+            let xGrid = originX - size / 2 + (size / gridCount) * i;
+            // 垂直線（Z軸方向の線）
+            line(xGrid, originZ - size / 2, xGrid, originZ + size / 2);
+
+            let zGrid = originZ + size / 2 - (size / gridCount) * i;
+            // 水平線（X軸方向の線）
+            line(originX - size / 2, zGrid, originX + size / 2, zGrid);
+        }
+
+        // --- 軸の描画 ---
+        stroke(150);
+        strokeWeight(2);
+        // X軸（水平方向）
+        line(originX - size / 2, originZ, originX + size / 2, originZ);
+        // Z軸（垂直方向）
+        line(originX, originZ - size / 2, originX, originZ + size / 2);
+
+        // 軸ラベル
+        fill(0);
+        noStroke();
+        textSize(12);
+        text("X", originX + size / 2 + 10, originZ + 5);
+        text("Z", originX - 10, originZ - size / 2 - 10);
+
+        // --- ベクトル描画 ---
+        let data = frames[currentFrame];
+
+        // データのx, zの範囲を想定（例：20〜30）
+        let dataMin = 20;
+        let dataMax = 30;
+
+        // data.x, data.zを描画領域のピクセル座標にマッピング（同じスケールで）
+        let x = map(data.x, dataMin, dataMax, originX - size / 2, originX + size / 2);
+        let z = map(data.z, dataMin, dataMax, originZ + size / 2, originZ - size / 2);
+
+        // ベクトルの成分も同じスケールで変換
+        let vx = data.vx * (size / (dataMax - dataMin));
+        let vz = -data.vz * (size / (dataMax - dataMin));
+
+        stroke(0);
+        fill(0);
+        push();
+        let angle = atan2(vz, vx);
+        translate(x, z);
+        rotate(angle);
+        fill(0);
+        noStroke();
+        beginShape();
+        vertex(5, 0);
+        vertex(-5, 4);
+        vertex(-5, -4);
+        endShape(CLOSE);
+        pop();
+
+        // --- スライダーと時間表示 ---
+        if (playing) {
+            currentFrame = (currentFrame + 1) % frames.length;
+            document.getElementById("slider").value = currentFrame;
+            document.getElementById("timeLabel").innerText = data.time.toFixed(3);
+        }
+    }
+  </script>
+</body>
+</html>
