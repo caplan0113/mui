@@ -38,12 +38,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         super().end_headers()
 
-allData = load_all()
-# data = allData[3][0][0]
-# pos = data["pos"]
-# rot = data["rot"]
-# time = data["time"]
-
 def create_frame(userId, uiId, subtaskId):
     # ユーザID、UI-ID、タスクIDに基づいてデータを取得
     data = allData[userId][uiId][subtaskId]
@@ -59,5 +53,6 @@ def create_frame(userId, uiId, subtaskId):
     return frames
 
 with socketserver.TCPServer(("", PORT), MyHandler) as httpd:
+    allData = load_all()
     print(f"Serving at http://localhost:{PORT}")
     httpd.serve_forever()
