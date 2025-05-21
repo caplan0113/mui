@@ -281,6 +281,9 @@ def all_convert_binary(new=False):
 def distance(a, b):
     a *= [1, 0, 1]
     b *= [1, 0, 1]
+    if len(a) == 3:
+        a = np.array([a])
+        b = np.array([b])
     return np.linalg.norm(np.array(a) - np.array(b), axis=1)
 
 def all_data_concat(new=False):
