@@ -36,74 +36,63 @@ ROBOT_NUM = [1, 3, 3, 1, 3, 3, 1, 2, 2, 2, 2]
 Y_ROTATE = [90, 0, 180, 270, 0, 180, 270, 0, 180, 0, 180]
 
 
-
 """
 allData = [
-    [data0, data1, data2, data3], # userId 0
+    [nullData, nullData, nullData, nullData], # userId 0: null
+    [nullData, nullData, nullData, nullData], # userId 1: null
+    [nullData, nullData, nullData, nullData], # userId 2: null
+    [taskData-0, taskData-1, taskData-2, taskData-3], # userId 3
+    [taskData-0, taskData-1, taskData-2, taskData-3], # userId 4
     ...
-]
+]: np.array(list) | shape(UserNUM, 4)
 
-data = [
-    {
-        "time": np.array(float),
-        "lg_pos": np.array(), # left hand position
-        "lg_rot": np.array(), # left hand rotation
-        "rg_pos": np.array(), # right hand position
-        "rg_rot": np.array(), # right hand rotation
-        "obj": np.array(str), # object name
-        "pos": np.array(), # camera position
-        "rot": np.array(), # camera rotation
-        "bpm": np.array(int), # heart rate
-        "trigger": np.array(bool), # button pressed
-        "state": int, # state
-        "subTask": np.array(bool), # subtask
-        "warning": np.array(int), # warning
-        "collision": np.array(bool), # collision
-        "robot": [ # robot data
-            {
-                "r_id": np.array(int), # robot id
-                "pos": np.array(), # robot position
-                "rot_y": np.array() # robot rotation
-            },
-            {
-                "r_id": np.array(int),
-                "pos": np.array(),
-                "rot_y": np.array()
-            },
-            {
-                "r_id": np.array(),
-                "pos": np.array(),
-                "rot_y": np.array()
-            },
-            {
-                "r_id": np.array(),
-                "pos": np.array(),
-                "rot_y": np.array()
-            },
-            {
-                "r_id": np.array(),
-                "pos": np.array(),
-                "rot_y": np.array()
-            },
-            {
-                "r_id": np.array(),
-                "pos": np.array(),
-                "rot_y": np.array()
-            }
-        ],
-        "robot_cnt": np.array(int), # robot count
-        
-        "taskTime": float, # task time
-        "taskCollision": int, # task collision
-        "taskMistake": int, # task mistake
-        "collision_flag": bool, # collision flag
-        "label": str, # label
-        "userId": int, # user id
-        "uiId": int # ui id
-    }, 
-]
+taskData = [
+    subtaskData-0: dict(),
+    subtaskData-1: dict(),
+    ...
+    subtaskData-8: dict()
+] : np.array(dict()) | shape(9, )
+
+nullData = [None]*9 : np.array() | shape(9, )
+
+subtaskData = {
+    "time": np.array(float) | shape(frameNum, ),
+
+    "pos": np.array(float) | shape(frameNum, ), # camera position
+    "rot": np.array(float) | shape(frameNum, ), # camera rotation
+    "lg_pos": np.array(float) | shape(frameNum, 3), # left eye global position
+    "lg_rot": np.array(float) | shape(frameNum, 3), # left eye rotation
+    "rg_pos": np.array(float) | shape(frameNum, 3), # right eye position
+    "rg_rot": np.array(float) | shape(frameNum, 3), # right eye rotation
+    
+    "obj": np.array(str) | shape(frameNum, ), # gaze object name
+    "bpm": np.array(int) | shape(frameNum, ), # heart rate
+    "trigger": np.array(bool) | shape(frameNum, ), # button pressed
+    "subTask": np.array(bool) | shape(frameNum, ), # subtask
+    "warning": np.array(int) | shape(frameNum, ), # warning robot count
+    "collision": np.array(bool) | shape(frameNum, ), # collision
+
+    "robot": [robotData] * 6, # robot data
+    "robot_cnt": np.array(int) | shape(frameNum, ), # moving robot count
+
+    "userId": int, # user id
+    "uiId": int # ui id
+    "state": int, # subtask id
+    "taskTime": float, # subtask time
+    "taskCollision": int, # task collision count
+    "taskMistake": int, # task mistake count
+    "collision_flag": bool, # robot collision
+    "label": str # label for graph plot example: "0-1*"
+}: dict 
+
+robotData = {
+    "r_id": np.array(int) | shape(frameNum, ), # robot id (0-14, 99:null)
+    "pos": np.array(float) | shape(frameNum, 3), # robot position
+    "rot_y": np.array(float) | shape(frameNum, ) # robot rotation
+}: dict
 """
 
+# csv data to binary ********************
 def convert_binary(userId, uiId):
     data = defaultdict(list)
 
@@ -278,14 +267,6 @@ def all_convert_binary(new=False):
                 print("Error {0:02d}_{1:1d}: {2}".format(i, j, e))
                 traceback.print_exc()
 
-def distance(a, b):
-    a *= [1, 0, 1]
-    b *= [1, 0, 1]
-    if len(a) == 3:
-        a = np.array([a])
-        b = np.array([b])
-    return np.linalg.norm(np.array(a) - np.array(b), axis=1)
-
 def all_data_concat(new=False):
     all_convert_binary(new)
     data = []
@@ -308,6 +289,12 @@ def all_data_concat(new=False):
         pickle.dump(data, f)
         print("all.pkl saved")
 
+def new():
+    all_data_concat(new=True)
+    convert_subject(new=True)
+    print("all data converted")
+
+# data load ********************
 def load_binary(userId, uiId):
     filename = BDATA.format(userId, uiId)
     if not os.path.exists(filename):
@@ -321,7 +308,7 @@ def load_binary(userId, uiId):
         data = pickle.load(f)
     return data
 
-def load_subtask(userId, uiId):
+def load_subtask(userId, uiId): # load taskData
     filename = BDATA_SUBTASK.format(userId, uiId)
     if not os.path.exists(filename):
         try:
@@ -338,7 +325,7 @@ def load_subtask(userId, uiId):
     
     return data
 
-def load_subject(): 
+def load_subject(): # load subjective data
     filename = os.path.join("bdata", "subject.pkl")
     if not os.path.exists(filename):
         convert_subject()
@@ -348,7 +335,7 @@ def load_subject():
     
     return data
 
-def load_all():
+def load_all(): # load all objective data
     filename = "bdata/all.pkl"
     if not os.path.exists(filename):
         all_data_concat()
@@ -358,7 +345,23 @@ def load_all():
     
     return data
 
-def new():
-    all_data_concat(new=True)
-    convert_subject(new=True)
-    print("all data converted")
+
+# data convert ********************
+"""
+distance(a, b): calculate distance between two points in xz plane
+"""
+def distance(a, b): # a, b: numpy.array(shape=(n, 3))
+    a *= [1, 0, 1]
+    b *= [1, 0, 1]
+    if len(a) == 3:
+        a = np.array([a])
+        b = np.array([b])
+    return np.linalg.norm(np.array(a) - np.array(b), axis=1) # np.array(shape=(n, ))
+
+"""
+rot2vec(rot): convert rotation to vector
+"""
+def rot2vec(rot): # rot: numpy.array(shape=(n, 3))
+    base_vec = [0, 0, 1]
+    vec = R.from_euler("xyz", rot, degrees=True).apply(base_vec)
+    return vec # np.array(shape=(n, 3))

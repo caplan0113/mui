@@ -1,5 +1,3 @@
-
-
 import csv
 
 def remove_y_columns(input_file, output_file):

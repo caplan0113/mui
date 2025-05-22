@@ -4,6 +4,7 @@ import socketserver
 import json
 from lib import *
 from urllib.parse import urlparse, parse_qs
+from scipy.spatial.transform import Rotation as R
 
 PORT = 8000
 

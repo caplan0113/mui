@@ -445,6 +445,48 @@ def task_bgcolor(ax, xlim, s, robot_num, collision_flag):
             xe = xmin + (xmax - xmin) * x2
         ax.axvspan(xs, xe, y1, y2, edgecolor=c, fill=False, hatch="/", alpha=0.5, lw=1)
 
+def subtask_time(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
+    userData = all[userId]
+    
+    collision = [[(ROBOT_NUM[data["state"]], data["taskTime"]) for data in subtaskData if data["collision_flag"]] for subtaskData in userData]
+    no_collision = [[(ROBOT_NUM[data["state"]], data["taskTime"]) for data in subtaskData if not data["collision_flag"]] for subtaskData in userData]
+
+    ymax = max([max([y for _, y in sub]) for sub in collision + no_collision])
+
+    fig, axs = plt.subplots(nrows=2, ncols=2, figsize=figsize)
+    fig.subplots_adjust(hspace=0.28, left=0.05, right=0.95, top=0.9, bottom=0.1, wspace=0.1)
+    fig.suptitle("Subtask Time[s]: User-{0:02d}".format(userId))
+    axs = axs.flatten()
+    plot_col = 0; plot_ncol = 0
+    for i, ax in enumerate(axs):
+        ax.set_title("UI-{0}".format(UI[i]))
+        ax.set_ylim(0, ymax*1.1)
+        ax.set_xlim(0.5, 3.5)
+        ax.set_xticks(np.arange(1, 4, 1))
+        # ax.set_yticks(np.arange(0, 21, 1))
+        # ax.set_xticklabels([])
+        # ax.set_yticklabels([])
+        ax.set_xlabel("Robot Num")
+        # ax.grid(True, which='both', linestyle='--', linewidth=0.5)
+        
+        for x, y in collision[i]:
+            plot_col = ax.scatter(x, y, marker="*", color="red", s=50)
+        for x, y in no_collision[i]:
+            plot_ncol = ax.scatter(x, y, marker="o", color="blue", s=50)
+    
+    fig.legend([plot_col, plot_ncol], ["Collision", "No Collision"], ncol=2, bbox_to_anchor=(0.5, 0), loc='lower center', fontsize='small')
+
+    # plt.tight_layout()
+    if save:
+        os.makedirs(f"pic/{save}", exist_ok=True)
+        plt.savefig(PATH.format(save, userId, 9), dpi=DPI)
+    elif pdf:
+        pdf.savefig(fig)
+    else:
+        plt.show()
+    plt.close()
+
+
 if __name__ == "__main__":
     try:
         all = load_all()
@@ -471,9 +513,12 @@ if __name__ == "__main__":
         # save_pdf(rot_y_diff_n, args=dict(n=5))
         # save_pdf(bpm)
         # save_pdf(robot_distance)
-        # save_pdf(rot_y)
-        save_pdf(twin_xz_roty_diff_n, args=dict(n=5, legends=["Position XZ", "Rotation Y"]))
+        # save_pdf(rot_y_diff)
+        # save_pdf(twin_xz_roty_diff_n, args=dict(n=5, legends=["Position XZ", "Rotation Y"]))
         # pos_xz_diff_n(3, 0, 10)
+        # subtask_time(3, 0)
+        save_pdf(subtask_time, uiIdRange=range(0, 1))
+        
 
         pass
     except Exception as e:
