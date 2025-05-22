@@ -22,7 +22,7 @@ mui
 
 ## 初期化
 
-テキストデータをバイナリデータに変換
+テキストデータのままだと読み込みに時間がかかるため、すべてバイナリデータに変換
 
 ```bash
  pip install -r requirements.txt
@@ -40,12 +40,14 @@ subjectData = load_subject() # dict(key: np.array(4,4))
 
 例
 
-- ユーザー3、ui-0の1つ目のサブタスクのカメラ位置の配列
-- ユーザー4、ui-1の5つ目のサブタスクのタスク時間
+- ユーザー3、ui-0 の1つ目のサブタスクのカメラ位置の配列
+- ユーザー4、ui-1 の5つ目のサブタスクのタスク時間
+- ユーザー3、ui-0 のアンケートの「わかりやすさ」のデータ
 
 ```python
 pos = allData[3, 0, 0]["pos"] # np.array(frameNum, 3)
 taskTime = allData[4, 0, 4]["taskTime"] # float
+easy = subjectData["easy"][3][0] # int
 ```
 
 ## データ構造
@@ -64,6 +66,7 @@ allData = [
     ...
 ]: np.array(list) | shape(UserNUM, 4) # [userId, uiId, subtaskId]
 
+# **********************
 taskData = [
     subtaskData-0: dict(),
     subtaskData-1: dict(),
@@ -71,9 +74,12 @@ taskData = [
     subtaskData-8: dict()
 ] : np.array(dict()) | shape(9, )
 
+# ---
 nullData = [None] * 9 : np.array() | shape(9, )
 
+# **********************
 subtaskData = {
+    # time series data
     "time": np.array(float) | shape(frameNum, ),
 
     "pos": np.array(float) | shape(frameNum, 3), # camera position
@@ -93,6 +99,7 @@ subtaskData = {
     "robot": [robotData] * 6, # robot data
     "robot_cnt": np.array(int) | shape(frameNum, ), # moving robot count
 
+    # info
     "userId": int, # user id
     "uiId": int # ui id
     "state": int, # subtask id
@@ -103,6 +110,7 @@ subtaskData = {
     "label": str # label for graph plot example: "0-1*"
 }: dict 
 
+# ---
 robotData = {
     "r_id": np.array(int) | shape(frameNum, ), # robot id (0-14, 99:null)
     "pos": np.array(float) | shape(frameNum, 3), # robot position
@@ -141,6 +149,8 @@ subjectiveData = {
     "comment": np.array(str) | shape(userNum, 4) # comment
 }
 ```
+
+ユーザーidとsubjectDataのインデックス番号を合わせるため、各要素のユーザー0から2までは-1が入っている
 
 ## その他ファイル
 

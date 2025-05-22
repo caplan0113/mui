@@ -97,7 +97,7 @@ robotData = {
 subjectiveData = {
     "userId": np.array(int) | shape(userNum, 4), # user id
     "uiId": np.array(int) | shape(userNum, 4), # ui id
-    
+
     "easy": np.array(int) | shape(userNum, 4), # easy to use (1-7, -1: null)
     "annoy": np.array(int) | shape(userNum, 4), # annoying (1-7, -1: null)
     "useful": np.array(int) | shape(userNum, 4), # useful (1-7, -1: null)
@@ -231,7 +231,7 @@ def convert_subject(new=False):
             # data[i//4][uiId]["load"] = json.loads(row[17])
     
     data_ = {
-        key: np.vectorize(lambda x: x[key])(data)
+        key: np.concatenate([np.full((3, 4), -1), np.vectorize(lambda x: x[key])(data)])
         for key in data[0][0].keys()
     }
     

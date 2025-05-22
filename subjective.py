@@ -103,6 +103,7 @@ def all_box_plot():
     
 if __name__ == "__main__":
     data = load_subject()
+    data = {k: v[3:] for k, v in data.items()}
     # all_box_plot()
 
 
