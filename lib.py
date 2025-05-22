@@ -58,8 +58,8 @@ nullData = [None]*9 : np.array() | shape(9, )
 subtaskData = {
     "time": np.array(float) | shape(frameNum, ),
 
-    "pos": np.array(float) | shape(frameNum, ), # camera position
-    "rot": np.array(float) | shape(frameNum, ), # camera rotation
+    "pos": np.array(float) | shape(frameNum, 3), # camera position
+    "rot": np.array(float) | shape(frameNum, 3), # camera rotation
     "lg_pos": np.array(float) | shape(frameNum, 3), # left eye global position
     "lg_rot": np.array(float) | shape(frameNum, 3), # left eye rotation
     "rg_pos": np.array(float) | shape(frameNum, 3), # right eye position
@@ -90,6 +90,35 @@ robotData = {
     "pos": np.array(float) | shape(frameNum, 3), # robot position
     "rot_y": np.array(float) | shape(frameNum, ) # robot rotation
 }: dict
+"""
+
+
+"""
+subjectiveData = {
+    "userId": np.array(int) | shape(userNum, 4), # user id
+    "uiId": np.array(int) | shape(userNum, 4), # ui id
+    
+    "easy": np.array(int) | shape(userNum, 4), # easy to use (1-7, -1: null)
+    "annoy": np.array(int) | shape(userNum, 4), # annoying (1-7, -1: null)
+    "useful": np.array(int) | shape(userNum, 4), # useful (1-7, -1: null)
+    "trust": np.array(int) | shape(userNum, 4), # trust (1-7, -1: null)
+
+    "notice": np.array(int) | shape(userNum, 4), # notice robot (1-7)
+    "distance": np.array(int) | shape(userNum, 4), # distance (1-7)
+    "direction": np.array(int) | shape(userNum, 4), # direction (1-7)
+    "safe": np.array(int) | shape(userNum, 4), # safe (1-7)
+    "vr": np.array(int) | shape(userNum, 4), # vr sickness (1-7)
+
+    "mental": np.array(int) | shape(userNum, 4), # NASA-TLX mental load (0-100)
+    "physical": np.array(int) | shape(userNum, 4), # NASA-TLX physical load (0-100)
+    "temporal": np.array(int) | shape(userNum, 4), # NASA-TLX temporal load (0-100)
+    "performance": np.array(int) | shape(userNum, 4), # NASA-TLX performance load (0-100)
+    "effort": np.array(int) | shape(userNum, 4), # NASA-TLX effort load (0-100)
+    "frustration": np.array(int) | shape(userNum, 4), # NASA-TLX frustration load (0-100)
+    "score": np.array(float) | shape(userNum, 4), # NASA-TLX score (0-100)
+
+    "comment": np.array(str) | shape(userNum, 4) # comment
+}
 """
 
 # csv data to binary ********************

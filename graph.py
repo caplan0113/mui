@@ -47,6 +47,8 @@ TASK_ROBOT = [
     [[("red", (0, 1), (3/4, 1)), ("magenta", (3/7, 4/7), (0, 3.5/4)), ("magenta", (6/7, 1), (0, 3.5/4)), ("orange", (0, 1), (0.5/4, 1.5/4))], [("red", (0, 1.5/7), (3/4, 1)), ("magenta", (6/7, 1), (0, 3.5/4)), ("orange", (0, 1), (0.5/4, 1.5/4))]]
 ]
 
+# eye tracking plot *****************************
+
 def pie_plot(id, uiId, attr, target = None):
     data = load_subtask(id, uiId)
     for i, sub in enumerate(data):
@@ -151,6 +153,8 @@ def barh_plot_all(userId, attr, target=OBJ_LABEL, figsize=FIGSIZE, save=SAVE, pd
         plt.show()
     plt.close()
 
+# time series plot *****************************
+
 def robot_distance(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     subtaskData = all[userId, uiId]
     plot_data = []
@@ -204,6 +208,8 @@ def twin_xz_roty_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save:str =None, pd
     plot_data = [ np.concatenate([np.full(n, 0), distance(data["pos"][n:], data["pos"][:-n])]) for data in subtaskData ]
     plot_data2 = [ np.concatenate([np.full(n, 0), np.abs(data["rot"][n:] - data["rot"][:-n])[:, 1]]) for data in subtaskData ]
     time_series_plot(f"Position XZ Diff & Rotation Y Diff [{n} frame]", plot_data, subtaskData, plot_data2=plot_data2, ylim=(-0.1, 0.3), ylim2=(-5, 15), legends=legends, figsize=figsize, save=save, pdf=pdf)
+
+# util *****************************
 
 def time_series_plot(name:str, plot_data, subtaskData, plot_data2=None, legends: list[str]=None, ylim: tuple[float, float]=None, ylim2: tuple[float, float]=None, xlim:tuple[float, float]=None, figsize:tuple[float, float]=FIGSIZE, save: str=None, pdf=None):
     fig, axs = plt.subplots(nrows=9, ncols=1, figsize=figsize)
@@ -313,6 +319,8 @@ def calculate_change(userId, uiId, attr):
 
         print("({0}, {1}, {2}) Total change: {3}, Average change: {4})".format(userId, uiId, i, total_change, average_change))
 
+# all data save and show plot *****************************
+
 def save_pdf(func, args=dict(), userIdRange=range(3, N), uiIdRange=range(0, 4)):
     pdf_path = PPATH.format(func.__name__)
     pdf = PdfPages(pdf_path)
@@ -351,6 +359,8 @@ def map_func(func, args=dict(), userIdRange=range(3, N), uiIdRange=range(0, 4)):
             except Exception as e:
                 print("Error in {0}: {1}".format(func.__name__, e))
                 traceback.print_exc()
+
+# 2D map *****************************
 
 def pos_xz(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     subtaskData = all[userId, uiId]
@@ -517,9 +527,7 @@ if __name__ == "__main__":
         # save_pdf(twin_xz_roty_diff_n, args=dict(n=5, legends=["Position XZ", "Rotation Y"]))
         # pos_xz_diff_n(3, 0, 10)
         # subtask_time(3, 0)
-        save_pdf(subtask_time, uiIdRange=range(0, 1))
-        
-
+        # save_pdf(subtask_time, uiIdRange=range(0, 1))
         pass
     except Exception as e:
         traceback.print_exc()
