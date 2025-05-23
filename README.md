@@ -94,6 +94,7 @@ subtaskData = {
     "trigger": np.array(bool) | shape(frameNum, ), # button pressed
     "subTask": np.array(bool) | shape(frameNum, ), # subtask
     "warning": np.array(int) | shape(frameNum, ), # warning robot count
+    "warning_filter": np.array(int) | shape(frameNum, ), # warning robot count (mode filter)
     "collision": np.array(bool) | shape(frameNum, ), # collision
 
     "robot": [robotData] * 6, # robot data
@@ -102,6 +103,7 @@ subtaskData = {
     # info
     "userId": int, # user id
     "uiId": int # ui id
+    "taskOrder": int # task order
     "state": int, # subtask id
     "taskTime": float, # subtask time
     "taskCollision": int, # task collision count

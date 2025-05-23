@@ -6,6 +6,7 @@ from collections import defaultdict
 import os
 import pickle
 from scipy.spatial.transform import Rotation as R
+from scipy.stats import mode
 
 N = 6 + 1
 N_USER = 4
@@ -34,7 +35,15 @@ COLLISION_FLAG = [
 
 ROBOT_NUM = [1, 3, 3, 1, 3, 3, 1, 2, 2, 2, 2]
 Y_ROTATE = [90, 0, 180, 270, 0, 180, 270, 0, 180, 0, 180]
-
+TASK_ORDER = [
+    [],
+    [],
+    [],
+    [1, 4, 2, 3],
+    [4, 1, 3, 2],
+    [2, 3, 4, 1],
+    [3, 2, 1, 4]
+]
 
 """
 allData = [
@@ -70,6 +79,7 @@ subtaskData = {
     "trigger": np.array(bool) | shape(frameNum, ), # button pressed
     "subTask": np.array(bool) | shape(frameNum, ), # subtask
     "warning": np.array(int) | shape(frameNum, ), # warning robot count
+    "warning_filter": np.array(int) | shape(frameNum, ), # warning robot count (mode filter)
     "collision": np.array(bool) | shape(frameNum, ), # collision
 
     "robot": [robotData] * 6, # robot data
@@ -77,6 +87,7 @@ subtaskData = {
 
     "userId": int, # user id
     "uiId": int # ui id
+    "taskOrder": int, # task order
     "state": int, # subtask id
     "taskTime": float, # subtask time
     "taskCollision": int, # task collision count
@@ -276,15 +287,19 @@ def split_subtask(userId, uiId):
         masked_data["collision_flag"] = COLLISION_FLAG[data["mapId"]][i]
         masked_data["userId"] = userId
         masked_data["uiId"] = uiId
+        masked_data["taskOrder"] = TASK_ORDER[userId][uiId]
         masked_data["label"] =  "{0:02d}-{1}".format(state, ROBOT_NUM[state]) + ("*" if masked_data["collision_flag"] else " ")
         subtask_data.append(masked_data)
+    
+    for sub in subtask_data:
+        sub["warning_filter"] = mode_filter(sub["warning"], 5)
         
     with open(BDATA_SUBTASK.format(userId, uiId), "wb") as f:
         pickle.dump(subtask_data, f)
         
 def all_convert_binary(new=False):
     for i in range(3, N):
-        for j in range(0, 5):
+        for j in range(0, 4):
             try:
                 if new or not os.path.exists(BDATA.format(i, j)):
                     convert_binary(i, j)
@@ -394,3 +409,45 @@ def rot2vec(rot): # rot: numpy.array(shape=(n, 3))
     base_vec = [0, 0, 1]
     vec = R.from_euler("xyz", rot, degrees=True).apply(base_vec)
     return vec # np.array(shape=(n, 3))
+
+
+def mode_filter(arr, window_size):
+    """
+    1次元配列に対して移動窓の最頻値（モード）を計算してノイズを平滑化する
+
+    Parameters:
+    - arr: 入力の1次元np.array
+    - window_size: ウィンドウのサイズ（奇数を推奨）
+
+    Returns:
+    - 平滑化された配列（np.array）
+    """
+    half = window_size // 2
+    padded = np.pad(arr, (half, half), mode='edge')  # 端を拡張してパディング
+    smoothed = np.empty_like(arr)
+
+    for i in range(len(arr)):
+        window = padded[i:i + window_size]
+        smoothed[i] = mode(window, keepdims=False).mode
+
+    return smoothed
+
+def get_warning_mask(warning, window=5):
+    masks = [ [ [] for _ in range(4)] for _ in range(4)]
+
+    diff = np.diff(warning.astype(int))
+    l = len(warning)
+
+    for i, d in enumerate(diff):
+        if d == 0:
+            continue
+        p = warning[i]
+        n = warning[i+1]
+        st = max(0, i-window+1)
+        ed = min(l, i+window+1)
+
+        mask = np.zeros(l, dtype=bool)
+        mask[st:ed] = True
+        masks[p][n].append(mask)
+
+    return masks
