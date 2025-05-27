@@ -99,6 +99,7 @@ subtaskData = {
 
     "robot": [robotData] * 6, # robot data
     "robot_cnt": np.array(int) | shape(frameNum, ), # moving robot count
+    "min_dist": np.array(float) | shape(frameNum, ), # minimum distance between robot and camera
 
     # info
     "userId": int, # user id

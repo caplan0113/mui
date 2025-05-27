@@ -84,6 +84,7 @@ subtaskData = {
 
     "robot": [robotData] * 6, # robot data
     "robot_cnt": np.array(int) | shape(frameNum, ), # moving robot count
+    "min_dist": np.array(float) | shape(frameNum, ), # minimum distance between robot and camera
 
     "userId": int, # user id
     "uiId": int # ui id
@@ -278,6 +279,15 @@ def split_subtask(userId, uiId):
                         masked_data[key][j][k] = data[key][j][k][st:ed]
             elif key not in KEY_INFO:
                 masked_data[key] = data[key][st:ed]
+        
+        min_dist = []
+        for j in range(st, ed):
+            mdist = 10**10
+            for k in data["robot"]:
+                if k["r_id"][j] == 99: continue
+                mdist = min(distance(data["pos"][j], k["pos"][j])[0], mdist)
+            min_dist.append(mdist)
+        masked_data["min_dist"] = np.array(min_dist)
         
         masked_data["taskTime"] = data["taskTimeParts"][i]
         masked_data["taskCollision"] = data["taskCollisionParts"][i]
