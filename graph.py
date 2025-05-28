@@ -208,7 +208,7 @@ def pos_xz_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save:str =None, pdf=None
 
 def pos_xz_diff_center(userId, uiId, figsize=FIGSIZE, save:str =None, pdf=None):
     subtaskData = all[userId, uiId]
-    plot_data = [ distance(data["pos"], np.array(TASK_TILE_CENTER[data["state"]])) for data in subtaskData ]
+    plot_data = [distance(data["pos"], np.array(TASK_TILE_CENTER[data["state"]])) for data in subtaskData]
     time_series_plot("Position XZ Diff Center", plot_data, subtaskData, ylim=(-0.5, 5), figsize=figsize, save=save, pdf=pdf)
 
 def twin_xz_roty_diff_n(userId, uiId, n:int, name="", figsize=FIGSIZE, save:str =None, pdf=None, legends: list[str]=None):
@@ -256,9 +256,10 @@ def warning_plot(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     window = 5
     subtaskData = all[userId, uiId]
     for i, sub in enumerate(subtaskData):
-        masks = get_warning_mask(sub["warning_filter"], window=30)
+        masks = get_warning_mask(sub["warning_filter"], window=120)
         data_rot_y_diff_n = np.concatenate([np.full(window, 0), np.abs(sub["rot"][window:] - sub["rot"][:-window])[:, 1]])
         data_pos_xz_diff_n = np.concatenate([np.full(window, 0), distance(sub["pos"][window:], sub["pos"][:-window])])
+        data_pos_xz_diff_center = distance(sub["pos"], np.array(TASK_TILE_CENTER[sub["state"]]))
 
         for p in range(4):
             for n in range(4):
@@ -287,10 +288,14 @@ def warning_plot(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
                     warning_bgcolor(ax, x, sub["warning_filter"][mask])
 
                     ax2 = ax.twinx()
-                    ax2.set_ylim(-0.1, 0.3)
+                    # ax2.set_ylim(-0.1, 0.3)
                     # ax2.set_ylabel("Position XZ Diff")
-                    plot_pos_xz_diff_n = data_pos_xz_diff_n[mask]
-                    ax2.plot(x, plot_pos_xz_diff_n, color="orange", alpha=0.7)
+                    # plot_pos_xz_diff_n = data_pos_xz_diff_n[mask]
+                    # ax2.plot(x, plot_pos_xz_diff_n, color="orange", alpha=0.7)
+
+                    ax2.set_ylim(-0.5, 5)
+                    plot_pos_xz_diff_ceter = data_pos_xz_diff_center[mask]
+                    ax2.plot(x, np.full_like(x, plot_pos_xz_diff_ceter), color="green", alpha=0.7)
                 
                 plt.tight_layout()
                 plt.show()
@@ -323,13 +328,14 @@ def time_series_fft(name:str, plot_data, subtaskData, plot_data2=None, legends: 
         plt.show()
     plt.close()
 
-def time_series_plot(name:str, plot_data, subtaskData, plot_data2=None, legends: list[str]=None, ylim: tuple[float, float]=None, ylim2: tuple[float, float]=None, xlim:tuple[float, float]=None, figsize:tuple[float, float]=FIGSIZE, save: str=None, pdf=None):
+def time_series_plot(name:str, plot_data, subtaskData, x=None, plot_data2=None, legends: list[str]=None, ylim: tuple[float, float]=None, ylim2: tuple[float, float]=None, xlim:tuple[float, float]=None, figsize:tuple[float, float]=FIGSIZE, save: str=None, pdf=None):
     fig, axs = plt.subplots(nrows=9, ncols=1, figsize=figsize)
     fig.suptitle("{0}: User-{1:02d}, UI-{2} ({3})".format(name, subtaskData[0]["userId"], UI[subtaskData[0]["uiId"]], subtaskData[0]["taskOrder"]))
     fig.subplots_adjust(hspace=0.55, left=0.09, right=0.955, top=0.93, wspace=0, bottom=0.07)
 
 
-    x = [ data["time"] - data["time"][0] for data in subtaskData ]
+    if not x:
+        x = [ data["time"] - data["time"][0] for data in subtaskData ]
 
     if not xlim:
         xlim = (0, max([r[-1] for r in x]))
@@ -353,7 +359,7 @@ def time_series_plot(name:str, plot_data, subtaskData, plot_data2=None, legends:
         line1,  = axs[i].plot(x[i], pd)
         lines.append(line1)
         obj_bgcolor(axs[i], x[i], subtaskData[i]["obj"])
-        collision_plot(axs[i], x[i], subtaskData[i]["collision"], xmax)
+        collision_plot(axs[i], x[i], subtaskData[i]["collision"], ylim)
         # collision_plot(axs[i], x[i], subtaskData[i]["trigger"], xmax)
         warning_bgcolor(axs[i], x[i], subtaskData[i]["warning_filter"])
 
@@ -405,12 +411,12 @@ def warning_bgcolor(ax, x, warning_list):
     if prev != 0:
         ax.axvspan(pt, x[-1], 0, prev*0.15, facecolor="green", alpha=0.5)
 
-def collision_plot(ax, x, collision_list, xmax=None):
-    if not xmax:
-        xmax = len(collision_list)
+def collision_plot(ax, x, collision_list, ylim):
+    y = ylim[1] - (ylim[1] - ylim[0]) * 0.05
     for t, collision in zip(x, collision_list):
         if collision:
-            ax.text(t/xmax, 0.99, "*", fontsize=15, color="magenta", ha='center', va='top', transform=ax.transAxes)
+            ax.scatter(t, y, marker="*", color="magenta", s=20, zorder=5)
+            # ax.text(t/xmax, 0.99, "*", fontsize=15, color="magenta", ha='center', va='top', transform=ax.transAxes)
 
 def calculate_change(userId, uiId, attr):
     data = load_subtask(userId, uiId)
@@ -660,19 +666,20 @@ if __name__ == "__main__":
         # map_func(pos_xz, args=dict())
         # pos_xz(3, 0)
         # twin_xz_roty_diff_n(3, 0, 5, legends=["Position XZ", "Rotation Y"])
+        # map_func(pos_xz_diff_center)
 
-        # save_pdf(pos_xz_diff_n, args=dict(n=5))
-        # save_pdf(pos_xz)
-        # save_pdf(rot_y_diff_n, args=dict(n=5))
-        # save_pdf(bpm)
-        # save_pdf(robot_distance)
-        # save_pdf(rot_y_diff)
-        # save_pdf(rot_y)
-        # save_pdf(twin_xz_roty_diff_n, args=dict(n=5, legends=["Position XZ", "Rotation Y"]))
-        # save_pdf(subtask_time, uiIdRange=range(0, 1))
-        # save_pdf(collision_count, uiIdRange=range(0, 1))
-        # save_pdf(mistake_count, uiIdRange=range(0, 1))
-        # save_pdf(twin_robot_distance_xz_diff_center, args=dict(legends=["Robot Distance", "Position XZ Diff Center"]))
+        save_pdf(pos_xz_diff_n, args=dict(n=60))
+        save_pdf(pos_xz)
+        save_pdf(rot_y_diff_n, args=dict(n=60))
+        save_pdf(bpm)
+        save_pdf(robot_distance)
+        save_pdf(rot_y_diff)
+        save_pdf(rot_y)
+        save_pdf(twin_xz_roty_diff_n, args=dict(n=60, legends=["Position XZ", "Rotation Y"]))
+        save_pdf(subtask_time, uiIdRange=range(0, 1))
+        save_pdf(collision_count, uiIdRange=range(0, 1))
+        save_pdf(mistake_count, uiIdRange=range(0, 1))
+        save_pdf(twin_robot_distance_xz_diff_center, args=dict(legends=["Robot Distance", "Position XZ Diff Center"]))
         save_pdf(pos_xz_diff_center)
 
         # warning_plot(5, 1)
@@ -681,6 +688,9 @@ if __name__ == "__main__":
         # collision_count(3, 0)
         # map_func(collision_count, uiIdRange=range(0, 1))
         # twin_robot_distance_xz_diff_center(3, 0, legends=["Robot Distance", "Position XZ Diff Center"])
+        # warning_plot(3, 0)
+        # map_func(rot_y_diff_n, args=dict(n=60), userIdRange=range(3, N), uiIdRange=range(0, 4))
+        # map_func(pos_xz_diff_n, args=dict(n=60), userIdRange=range(3, N), uiIdRange=range(0, 4))
         pass
     except Exception as e:
         traceback.print_exc()
