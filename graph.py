@@ -171,7 +171,7 @@ def barh_plot_all(userId, attr, target=OBJ_LABEL, figsize=FIGSIZE, save=SAVE, pd
 
 def robot_distance(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     subtaskData = all[userId, uiId]
-    time_series_plot("Robot Distance", [data["min_dist"] for data in subtaskData], subtaskData, ylim=(0, 6), figsize=figsize, save=save, pdf=pdf)
+    time_series_plot("Robot Distance [m]", [data["min_dist"] for data in subtaskData], subtaskData, ylim=(0, 6), figsize=figsize, save=save, pdf=pdf)
 
 def rot_y(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     subtaskData = all[userId, uiId]
@@ -180,12 +180,12 @@ def rot_y(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
 def rot_y_diff(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     subtaskData = all[userId, uiId]
     plot_data = [ np.abs(np.diff(data["rot"], axis=0, prepend=[data["rot"][0]]))[:, 1] for data in subtaskData ]
-    time_series_plot("Rotation_y Diff [1 frame]", plot_data, subtaskData, ylim=(-2, 6), figsize=figsize, save=save, pdf=pdf)
+    time_series_plot("Rotation_y Diff [degree] (1 frame)", plot_data, subtaskData, ylim=(-2, 6), figsize=figsize, save=save, pdf=pdf)
 
 def rot_y_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save: str =None, pdf=None):
     subtaskData = all[userId, uiId]
     plot_data = [ np.concatenate([np.full(n, 0), np.abs(data["rot"][n:] - data["rot"][:-n])[:, 1]]) for data in subtaskData ]
-    time_series_plot(f"Rotation_y Diff [{n} frame]", plot_data, subtaskData, ylim=(-5, 15), figsize=figsize, save=save, pdf=pdf)
+    time_series_plot(f"Rotation_y Diff [degree] ({n} frame)", plot_data, subtaskData, ylim=(-1, 150), figsize=figsize, save=save, pdf=pdf)
 
 def bpm(userId, uiId, figsize=FIGSIZE, save:str =None, pdf=None):
     subtaskData = all[userId, uiId]
@@ -204,24 +204,24 @@ def pos_z_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save:str =None, pdf=None)
 def pos_xz_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save:str =None, pdf=None):
     subtaskData = all[userId, uiId]
     plot_data = [ np.concatenate([np.full(n, 0), distance(data["pos"][n:], data["pos"][:-n])]) for data in subtaskData ]
-    time_series_plot(f"Position XZ Diff [{n} frame]", plot_data, subtaskData, ylim=(-0.1, 0.3), figsize=figsize, save=save, pdf=pdf)
+    time_series_plot(f"Position XZ Diff [m] ({n} frame)", plot_data, subtaskData, ylim=(-0.2, 2), figsize=figsize, save=save, pdf=pdf)
 
 def pos_xz_diff_center(userId, uiId, figsize=FIGSIZE, save:str =None, pdf=None):
     subtaskData = all[userId, uiId]
     plot_data = [distance(data["pos"], np.array(TASK_TILE_CENTER[data["state"]])) for data in subtaskData]
-    time_series_plot("Position XZ Diff Center", plot_data, subtaskData, ylim=(-0.5, 5), figsize=figsize, save=save, pdf=pdf)
+    time_series_plot("Position XZ Diff Center [m]", plot_data, subtaskData, ylim=(-0.5, 5), figsize=figsize, save=save, pdf=pdf)
 
 def twin_xz_roty_diff_n(userId, uiId, n:int, name="", figsize=FIGSIZE, save:str =None, pdf=None, legends: list[str]=None):
     subtaskData = all[userId, uiId]
     plot_data = [ np.concatenate([np.full(n, 0), distance(data["pos"][n:], data["pos"][:-n])]) for data in subtaskData ]
     plot_data2 = [ np.concatenate([np.full(n, 0), np.abs(data["rot"][n:] - data["rot"][:-n])[:, 1]]) for data in subtaskData ]
-    time_series_plot(f"Position XZ Diff & Rotation Y Diff [{n} frame]"+name, plot_data, subtaskData, plot_data2=plot_data2, ylim=(-0.1, 0.3), ylim2=(-5, 15), legends=legends, figsize=figsize, save=save, pdf=pdf)
+    time_series_plot(f"Position XZ Diff [m] & Rotation Y Diff [degree] ({n} frame)"+name, plot_data, subtaskData, plot_data2=plot_data2, ylim=(-0.1, 0.3), ylim2=(-5, 15), legends=legends, figsize=figsize, save=save, pdf=pdf)
 
 def twin_robot_distance_xz_diff_center(userId, uiId, name="", figsize=FIGSIZE, save:str =None, pdf=None, legends: list[str]=None):
     subtaskData = all[userId, uiId]
     plot_data = [ data["min_dist"] for data in subtaskData ]
     plot_data2 = [ distance(data["pos"], np.array(TASK_TILE_CENTER[data["state"]])) for data in subtaskData ]
-    time_series_plot(f"Robot Distance & Position XZ Diff Center"+name, plot_data, subtaskData, plot_data2=plot_data2, ylim=(0, 6), ylim2=(-0.5, 5), legends=legends, figsize=figsize, save=save, pdf=pdf)
+    time_series_plot(f"Robot Distance & Position XZ Diff Center [m]"+name, plot_data, subtaskData, plot_data2=plot_data2, ylim=(0, 6), ylim2=(-0.5, 5), legends=legends, figsize=figsize, save=save, pdf=pdf)
 
 def gaze_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save:str =None, pdf=None):
     subtaskData = all[userId, uiId]
@@ -250,7 +250,7 @@ def gaze_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save:str =None, pdf=None):
 
         plot_data.append(pd)
 
-    time_series_plot(f"Gaze Diff [{n} frame]", plot_data, subtaskData, figsize=figsize, save=save, pdf=pdf)
+    time_series_plot(f"Gaze Diff [degree] ({n} frame)", plot_data, subtaskData, figsize=figsize, save=save, pdf=pdf)
 
 def warning_plot(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     window = 5
@@ -354,6 +354,7 @@ def time_series_plot(name:str, plot_data, subtaskData, x=None, plot_data2=None, 
         axs[i].set_ylim(*ylim)
         # axs[i].set_xlim(*xlim)
         # xmax = max(x[i])
+        xmax = 70
         axs[i].set_xlim(0, xmax)
         axs[i].text(-0.09, 0.5, subtaskData[i]["label"], transform=axs[i].transAxes, fontsize=10, va='center')
         line1,  = axs[i].plot(x[i], pd)
@@ -632,7 +633,7 @@ def robot_num_plot(name: str, collision, no_collision, userId, figsize=FIGSIZE, 
         for x, y in no_collision[i]:
             plot_ncol = ax.scatter(x, y, marker="o", color="blue", s=50, alpha=0.3)
     
-    fig.legend([plot_col1, plot_col2, plot_ncol], ["Collision 1", "Collision 2", "No Collision"], ncol=3, bbox_to_anchor=(0.5, 0), loc='lower center', fontsize='small')
+    fig.legend([plot_col1, plot_col2, plot_ncol], ["Collision-pattern 1", "Collision-pattern 2", "No Collision-pattern"], ncol=3, bbox_to_anchor=(0.5, 0), loc='lower center', fontsize='small')
 
     # plt.tight_layout()
     if save:
@@ -668,19 +669,20 @@ if __name__ == "__main__":
         # twin_xz_roty_diff_n(3, 0, 5, legends=["Position XZ", "Rotation Y"])
         # map_func(pos_xz_diff_center)
 
-        save_pdf(pos_xz_diff_n, args=dict(n=60))
-        save_pdf(pos_xz)
-        save_pdf(rot_y_diff_n, args=dict(n=60))
-        save_pdf(bpm)
-        save_pdf(robot_distance)
-        save_pdf(rot_y_diff)
-        save_pdf(rot_y)
-        save_pdf(twin_xz_roty_diff_n, args=dict(n=60, legends=["Position XZ", "Rotation Y"]))
-        save_pdf(subtask_time, uiIdRange=range(0, 1))
-        save_pdf(collision_count, uiIdRange=range(0, 1))
-        save_pdf(mistake_count, uiIdRange=range(0, 1))
-        save_pdf(twin_robot_distance_xz_diff_center, args=dict(legends=["Robot Distance", "Position XZ Diff Center"]))
-        save_pdf(pos_xz_diff_center)
+        # save_pdf(pos_xz_diff_n, args=dict(n=60))
+        # save_pdf(pos_xz)
+        # save_pdf(rot_y_diff_n, args=dict(n=60))
+        # save_pdf(bpm)
+        # save_pdf(robot_distance)
+        # save_pdf(rot_y_diff)
+        # save_pdf(rot_y)
+        # save_pdf(twin_xz_roty_diff_n, args=dict(n=60, legends=["Position XZ", "Rotation Y"]))
+        # save_pdf(subtask_time, uiIdRange=range(0, 1))
+        # save_pdf(collision_count, uiIdRange=range(0, 1))
+        # save_pdf(mistake_count, uiIdRange=range(0, 1))
+        # save_pdf(twin_robot_distance_xz_diff_center, args=dict(legends=["Robot Distance", "Position XZ Diff Center"]))
+        # save_pdf(pos_xz_diff_center)
+        save_pdf(gaze_diff_n, args=dict(n=1))
 
         # warning_plot(5, 1)
         # gaze_diff_n(3, 0, 5)
