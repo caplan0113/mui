@@ -223,6 +223,12 @@ def twin_robot_distance_xz_diff_center(userId, uiId, name="", figsize=FIGSIZE, s
     plot_data2 = [ distance(data["pos"], np.array(TASK_TILE_CENTER[data["state"]])) for data in subtaskData ]
     time_series_plot(f"Robot Distance & Position XZ Diff Center [m]"+name, plot_data, subtaskData, plot_data2=plot_data2, ylim=(0, 6), ylim2=(-0.5, 5), legends=legends, figsize=figsize, save=save, pdf=pdf)
 
+def twin_rot_y_gaze(userId, uiId, name="", figsize=FIGSIZE, save:str =None, pdf=None, legends: list[str]=None):
+    subtaskData = all[userId, uiId]
+    plot_data = [ data["rot"][:, 1] for data in subtaskData ]
+    plot_data2 = [data["lg_rot"][:, 1] for data in subtaskData]
+    time_series_plot(f"Rotation Y & Gaze {name}", plot_data, subtaskData, plot_data2=plot_data2, legends=legends, figsize=figsize, save=save, pdf=pdf)
+
 def gaze_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save:str =None, pdf=None):
     subtaskData = all[userId, uiId]
     gaze_vec1 = [rot2vec(data["lg_rot"]) for data in subtaskData]
@@ -645,6 +651,60 @@ def robot_num_plot(name: str, collision, no_collision, userId, figsize=FIGSIZE, 
         plt.show()
     plt.close()
 
+# scatter plot *****************************
+
+def scatter_pos_xz_diff_center_robot_distance(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
+    subtaskData = all[userId, uiId]
+    data1 = [distance(data["pos"], np.array(TASK_TILE_CENTER[data["state"]])) for data in subtaskData]
+    data2 = [data["min_dist"] for data in subtaskData]
+
+    scatter_plot(data1, data2, "Position XZ Diff Center & Robot Distance: User-{0:02d}, UI-{1} ({2})".format(userId, UI[uiId], subtaskData[0]["taskOrder"]), "Position XZ Diff Center [m]", "Robot Distance [m]", subtaskData, xlim=(0, 6), ylim=(0, 6), figsize=figsize, save=save, pdf=pdf)
+
+
+def scatter_plot(data1, data2, title, xlabel, ylabel, subtaskData, xlim, ylim, figsize=FIGSIZE, save=SAVE, pdf=None):
+    fig, axs = plt.subplots(ncols=3, nrows=3, figsize=figsize)
+
+    fig.suptitle(title)
+    fig.subplots_adjust(hspace=0.3, left=0.06, right=0.98, top=0.9, wspace=0.11, bottom=0.08)
+
+    axs = axs.flatten()
+
+    if not xlim:
+        xlim = (min([min(d) for d in data1]), max([max(d) for d in data1]))
+
+    if not ylim:
+        ylim = (min([min(d) for d in data2]), max([max(d) for d in data2]))
+    
+    corr = get_corr(data1, data2)
+
+    for i, (ax, d1, d2, co) in enumerate(zip(axs, data1, data2, corr)):
+        ax.set_title("Subtask {0}: {1:.2f}".format(subtaskData[i]["label"], co))
+        # ax.set_xlabel(xlabel)
+        # ax.set_ylabel(ylabel)
+        
+        mask0, mask1, mask2, mask3 = subtaskData[i]["warning"]==0, subtaskData[i]["warning"]==1, subtaskData[i]["warning"]==2, subtaskData[i]["warning"]==3
+        d1_0, d2_0 = d1[mask0], d2[mask0]
+        d1_1, d2_1 = d1[mask1], d2[mask1]
+        d1_2, d2_2 = d1[mask2], d2[mask2]
+        d1_3, d2_3 = d1[mask3], d2[mask3]
+        ax.scatter(d1_0, d2_0, color="green", s=5, label="Warning 0")
+        ax.scatter(d1_1, d2_1, color="gold", s=5, label="Warning 1")
+        ax.scatter(d1_2, d2_2, color="darkorange", s=5, label="Warning 2")
+        ax.scatter(d1_3, d2_3, color="red", s=5, label="Warning 3")
+        ax.set_xlim(*xlim)
+        ax.set_ylim(*ylim)
+    
+    fig.supxlabel(xlabel, x=0.5, y=0.01)
+    fig.supylabel(ylabel, x=0.01, y=0.5)
+
+    if save:
+        os.makedirs(f"pic/{save}", exist_ok=True)
+        plt.savefig(PATH.format(save, 0, 9), dpi=DPI)
+    elif pdf:
+        pdf.savefig(fig)
+    else:
+        plt.show()
+    plt.close()
 
 if __name__ == "__main__":
     try:
@@ -683,6 +743,7 @@ if __name__ == "__main__":
         # save_pdf(twin_robot_distance_xz_diff_center, args=dict(legends=["Robot Distance", "Position XZ Diff Center"]))
         # save_pdf(pos_xz_diff_center)
         save_pdf(gaze_diff_n, args=dict(n=1))
+        # save_pdf(scatter_pos_xz_diff_center_robot_distance)
 
         # warning_plot(5, 1)
         # gaze_diff_n(3, 0, 5)
@@ -693,6 +754,8 @@ if __name__ == "__main__":
         # warning_plot(3, 0)
         # map_func(rot_y_diff_n, args=dict(n=60), userIdRange=range(3, N), uiIdRange=range(0, 4))
         # map_func(pos_xz_diff_n, args=dict(n=60), userIdRange=range(3, N), uiIdRange=range(0, 4))
+        # scatter_pos_xz_diff_center_robot_distance(3, 0)
+        # twin_rot_y_gaze(4, 0, legends=["Left Gaze", "Right Gaze"])
         pass
     except Exception as e:
         traceback.print_exc()

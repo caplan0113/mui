@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from lib import *
 from matplotlib.backends.backend_pdf import PdfPages
-from scipy.stats import spearmanr
+
 from itertools import combinations
 
 FIGSIZE = (8, 6)
@@ -49,22 +49,18 @@ def box_plot(attr, figsize=FIGSIZE, save=SAVE, pdf=None):
         plt.show()
     plt.close()
 
-def get_corr(attr1, attr2):
-    data1 = data[attr1]
-    data2 = data[attr2]
-    result = np.array([float(spearmanr(data1[:, i], data2[:, i]).statistic) for i in range(4)])
-    return result
+
 
 def all_corr():
     corr_list = []
     for attr1, attr2 in combinations(list(KEY.keys()), 2):
-        corr_list.append((attr1, attr2, get_corr(attr1, attr2)))
+        corr_list.append((attr1, attr2, get_corr(data[attr1], data[attr2], axis=1)))
     return corr_list
 
 def scatter_plot(attr1, attr2, figsize=FIGSIZE, save=SAVE, pdf=None):
     fig, axs = plt.subplots(nrows=2, ncols=2, figsize=figsize)
     fig.subplots_adjust(hspace=0.25, bottom=0.05)
-    corr = get_corr(attr1, attr2)
+    corr = get_corr(data[attr1], data[attr2], axis=1)
     for i, ax in enumerate(axs.flat):
         x, y = data[attr1][:, i], data[attr2][:, i]
         ax.scatter(x, y, label=UI_LABEL[i])
@@ -104,6 +100,7 @@ def all_box_plot():
 if __name__ == "__main__":
     data = load_subject()
     data = {k: v[3:] for k, v in data.items()}
+    # print(get_corr(data["mental"], data["physical"], axis=1))
     # all_box_plot()
 
 

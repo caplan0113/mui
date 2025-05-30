@@ -7,6 +7,7 @@ import os
 import pickle
 from scipy.spatial.transform import Rotation as R
 from scipy.stats import mode
+from scipy.stats import spearmanr
 
 N = 6 + 1
 N_USER = 4
@@ -137,31 +138,39 @@ subjectiveData = {
 def convert_binary(userId, uiId):
     data = defaultdict(list)
 
-    filename = FGAZE.format(userId, uiId)
-    with open(filename, 'r', encoding="utf-8-sig") as f:
-        reader = csv.reader(f)
-        next(reader) # time, l_pos_x, l_pos_y, l_pos_z, l_qua_x, l_qua_y, l_qua_z, l_qua_w, r_pos_x, r_pos_y, r_pos_z, r_qua_x, r_qua_y, r_qua_z, r_qua_w, obj
-        for row in reader:
-            data["time"].append(float(row[0]))
-            data["lg_pos"].append((float(row[1]), float(row[2]), float(row[3])))
-            data["lg_rot"].append(R.from_quat((float(row[4]), float(row[5]), float(row[6]), float(row[7]))).as_euler("xyz", degrees=True))
-            data["rg_pos"].append((float(row[8]), float(row[9]), float(row[10])))
-            data["rg_rot"].append(R.from_quat((float(row[11]), float(row[12]), float(row[13]), float(row[14]))).as_euler("xyz", degrees=True))
-            data["obj"].append(row[15].strip())
-    
+
+    head_quats = []
     filename = FPLAYER.format(userId, uiId)
     with open(filename, 'r', encoding="utf-8-sig") as f:
         reader = csv.reader(f)
         next(reader) # time, pos_x, pos_y, pos_z, qua_x, qua_y, qua_z, qua_w, bpm, trigger, state, subTask, count(robot), collision
         for row in reader:
             data["pos"].append((float(row[1]), float(row[2]), float(row[3])))
-            data["rot"].append(R.from_quat((float(row[4]), float(row[5]), float(row[6]), float(row[7]))).as_euler("xyz", degrees=True))
+            hq = R.from_quat((float(row[4]), float(row[5]), float(row[6]), float(row[7])))
+            head_quats.append(hq)
+            data["rot"].append(hq.as_euler("xyz", degrees=True))
             data["bpm"].append(int(row[8]))
             data["trigger"].append(bool(int(row[9])))
             data["state"].append(int(row[10]))
             data["subTask"].append(bool(int(row[11])))
             data["warning"].append(int(row[12]))
             data["collision"].append(bool(int(row[13])))
+
+
+    filename = FGAZE.format(userId, uiId)
+    with open(filename, 'r', encoding="utf-8-sig") as f:
+        reader = csv.reader(f)
+        next(reader) # time, l_pos_x, l_pos_y, l_pos_z, l_qua_x, l_qua_y, l_qua_z, l_qua_w, r_pos_x, r_pos_y, r_pos_z, r_qua_x, r_qua_y, r_qua_z, r_qua_w, obj
+        for row, hq in zip(reader, head_quats):
+            data["time"].append(float(row[0]))
+            data["lg_pos"].append((float(row[1]), float(row[2]), float(row[3])))
+            lg_local_q = hq.inv() * R.from_quat((float(row[4]), float(row[5]), float(row[6]), float(row[7])))
+            data["lg_rot"].append(lg_local_q.as_euler("xyz", degrees=True))
+            data["rg_pos"].append((float(row[8]), float(row[9]), float(row[10])))
+            rg_local_q = hq.inv() * R.from_quat((float(row[11]), float(row[12]), float(row[13]), float(row[14])))
+            data["rg_rot"].append(rg_local_q.as_euler("xyz", degrees=True))
+            data["obj"].append(row[15].strip())
+    
     
     filename = FROBOT.format(userId, uiId)
     with open(filename, 'r', encoding="utf-8-sig") as f:
@@ -461,3 +470,10 @@ def get_warning_mask(warning, window=5):
         masks[p][n].append(mask)
 
     return masks
+
+def get_corr(data1, data2, axis=0):
+    if axis == 1:
+        data1 = np.array(data1).T
+        data2 = np.array(data2).T
+    result = np.array([float(spearmanr(d1, d2).statistic) for d1, d2 in zip(data1, data2)])
+    return result
