@@ -6,3 +6,4 @@ pic/
 activate
 pdf/
 archive/
+__pycache__/
