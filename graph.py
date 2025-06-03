@@ -173,6 +173,11 @@ def robot_distance(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     subtaskData = all[userId, uiId]
     time_series_plot("Robot Distance [m]", [data["min_dist"] for data in subtaskData], subtaskData, ylim=(0, 6), figsize=figsize, save=save, pdf=pdf)
 
+def robot_distance_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save: str =None, pdf=None):
+    subtaskData = all[userId, uiId]
+    plot_data = [ np.concatenate([np.full(n, 0), np.abs(data["min_dist"][n:] - data["min_dist"][:-n])]) for data in subtaskData ]
+    time_series_plot(f"Robot Distance Diff [m] ({n} frame)", plot_data, subtaskData, ylim=(-0.05, 1), figsize=figsize, save=save, pdf=pdf)
+
 def rot_y(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     subtaskData = all[userId, uiId]
     time_series_plot("Rotation_y", [data["rot"][:, 1] for data in subtaskData], subtaskData, figsize=figsize, save=save, pdf=pdf)
@@ -445,6 +450,7 @@ def calculate_change(userId, uiId, attr):
 # all data save and show plot *****************************
 
 def save_pdf(func, args=dict(), userIdRange=range(3, N), uiIdRange=range(0, 4)):
+    os.makedirs("pdf", exist_ok=True)
     pdf_path = PPATH.format(func.__name__)
     pdf = PdfPages(pdf_path)
     try: 
@@ -724,13 +730,15 @@ if __name__ == "__main__":
         # pos_xz(3, 0)
         # twin_xz_roty_diff_n(3, 0, 5, legends=["Position XZ", "Rotation Y"])
         # map_func(pos_xz_diff_center)
-        map_func(gaze_diff_n, args=dict(n=5))
+        # map_func(gaze_diff_n, args=dict(n=5))
+        # map_func(robot_distance_diff_n, args=dict(n=5))
 
         # save_pdf(pos_xz_diff_n, args=dict(n=60))
         # save_pdf(pos_xz)
         # save_pdf(rot_y_diff_n, args=dict(n=60))
         # save_pdf(bpm)
         # save_pdf(robot_distance)
+        save_pdf(robot_distance_diff_n, args=dict(n=60))
         # save_pdf(rot_y_diff)
         # save_pdf(rot_y)
         # save_pdf(twin_xz_roty_diff_n, args=dict(n=60, legends=["Position XZ", "Rotation Y"]))
