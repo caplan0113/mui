@@ -250,13 +250,9 @@ def gaze_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save:str =None, pdf=None):
             else:
                 pd.append(l)
         
-        fft_result = np.fft.fft(pd)
-        freqs = np.fft.fftfreq(len(pd), d=1/60)  # Assuming 30 Hz sampling rate
-        power = np.abs(fft_result)
-
         plot_data.append(pd)
 
-    time_series_plot(f"Gaze Diff [degree] ({n} frame)", plot_data, subtaskData, figsize=figsize, save=save, pdf=pdf)
+    time_series_plot(f"Gaze Diff [degree] ({n} frame)", plot_data, subtaskData, ylim=(-0.1, 1.0), figsize=figsize, save=save, pdf=pdf)
 
 def warning_plot(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     window = 5
@@ -360,7 +356,7 @@ def time_series_plot(name:str, plot_data, subtaskData, x=None, plot_data2=None, 
         axs[i].set_ylim(*ylim)
         # axs[i].set_xlim(*xlim)
         # xmax = max(x[i])
-        xmax = 70
+        # xmax = 70
         axs[i].set_xlim(0, xmax)
         axs[i].text(-0.09, 0.5, subtaskData[i]["label"], transform=axs[i].transAxes, fontsize=10, va='center')
         line1,  = axs[i].plot(x[i], pd)
@@ -728,6 +724,7 @@ if __name__ == "__main__":
         # pos_xz(3, 0)
         # twin_xz_roty_diff_n(3, 0, 5, legends=["Position XZ", "Rotation Y"])
         # map_func(pos_xz_diff_center)
+        map_func(gaze_diff_n, args=dict(n=5))
 
         # save_pdf(pos_xz_diff_n, args=dict(n=60))
         # save_pdf(pos_xz)
@@ -742,7 +739,7 @@ if __name__ == "__main__":
         # save_pdf(mistake_count, uiIdRange=range(0, 1))
         # save_pdf(twin_robot_distance_xz_diff_center, args=dict(legends=["Robot Distance", "Position XZ Diff Center"]))
         # save_pdf(pos_xz_diff_center)
-        save_pdf(gaze_diff_n, args=dict(n=1))
+        # save_pdf(gaze_diff_n, args=dict(n=1))
         # save_pdf(scatter_pos_xz_diff_center_robot_distance)
 
         # warning_plot(5, 1)
