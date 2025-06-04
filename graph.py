@@ -178,6 +178,14 @@ def robot_distance_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save: str =None,
     plot_data = [ np.concatenate([np.full(n, 0), np.abs(data["min_dist"][n:] - data["min_dist"][:-n])]) for data in subtaskData ]
     time_series_plot(f"Robot Distance Diff [m] ({n} frame)", plot_data, subtaskData, ylim=(-0.05, 1), figsize=figsize, save=save, pdf=pdf)
 
+def pupil_size(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
+    subtaskData = all[userId, uiId]
+    time_series_plot("Pupil Size", [data["lg_pupil_d"] for data in subtaskData], subtaskData, ylim=(3, 7), figsize=figsize, save=save, pdf=pdf)
+
+def eye_open(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
+    subtaskData = all[userId, uiId]
+    time_series_plot("Eye Open", [data["lg_open"] for data in subtaskData], subtaskData, ylim=(-0.2, 1.2), figsize=figsize, save=save, pdf=pdf)
+
 def rot_y(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     subtaskData = all[userId, uiId]
     time_series_plot("Rotation_y", [data["rot"][:, 1] for data in subtaskData], subtaskData, figsize=figsize, save=save, pdf=pdf)
@@ -361,7 +369,7 @@ def time_series_plot(name:str, plot_data, subtaskData, x=None, plot_data2=None, 
         axs[i].set_ylim(*ylim)
         # axs[i].set_xlim(*xlim)
         # xmax = max(x[i])
-        # xmax = 70
+        xmax = 50
         axs[i].set_xlim(0, xmax)
         axs[i].text(-0.09, 0.5, subtaskData[i]["label"], transform=axs[i].transAxes, fontsize=10, va='center')
         line1,  = axs[i].plot(x[i], pd)
@@ -732,23 +740,26 @@ if __name__ == "__main__":
         # map_func(pos_xz_diff_center)
         # map_func(gaze_diff_n, args=dict(n=5))
         # map_func(robot_distance_diff_n, args=dict(n=5))
+        # map_func(eye_open)
 
-        save_pdf(pos_xz_diff_n, args=dict(n=60))
-        save_pdf(pos_xz)
-        save_pdf(rot_y_diff_n, args=dict(n=60))
-        save_pdf(bpm)
-        save_pdf(robot_distance)
-        save_pdf(robot_distance_diff_n, args=dict(n=60))
-        save_pdf(rot_y_diff)
-        save_pdf(rot_y)
-        save_pdf(twin_xz_roty_diff_n, args=dict(n=60, legends=["Position XZ", "Rotation Y"]))
-        save_pdf(subtask_time, uiIdRange=range(0, 1))
-        save_pdf(collision_count, uiIdRange=range(0, 1))
-        save_pdf(mistake_count, uiIdRange=range(0, 1))
-        save_pdf(twin_robot_distance_xz_diff_center, args=dict(legends=["Robot Distance", "Position XZ Diff Center"]))
-        save_pdf(pos_xz_diff_center)
-        save_pdf(gaze_diff_n, args=dict(n=1))
-        save_pdf(scatter_pos_xz_diff_center_robot_distance)
+        # save_pdf(pos_xz_diff_n, args=dict(n=60))
+        # save_pdf(pos_xz)
+        # save_pdf(rot_y_diff_n, args=dict(n=60))
+        # save_pdf(bpm)
+        # save_pdf(robot_distance)
+        # save_pdf(robot_distance_diff_n, args=dict(n=60))
+        # save_pdf(rot_y_diff)
+        # save_pdf(rot_y)
+        # save_pdf(twin_xz_roty_diff_n, args=dict(n=60, legends=["Position XZ", "Rotation Y"]))
+        # save_pdf(subtask_time, uiIdRange=range(0, 1))
+        # save_pdf(collision_count, uiIdRange=range(0, 1))
+        # save_pdf(mistake_count, uiIdRange=range(0, 1))
+        # save_pdf(twin_robot_distance_xz_diff_center, args=dict(legends=["Robot Distance", "Position XZ Diff Center"]))
+        # save_pdf(pos_xz_diff_center)
+        # save_pdf(gaze_diff_n, args=dict(n=1))
+        # save_pdf(scatter_pos_xz_diff_center_robot_distance)
+        save_pdf(eye_open)
+        save_pdf(pupil_size)
 
         # warning_plot(5, 1)
         # gaze_diff_n(3, 0, 5)
