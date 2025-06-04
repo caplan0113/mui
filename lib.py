@@ -9,8 +9,8 @@ from scipy.spatial.transform import Rotation as R
 from scipy.stats import mode
 from scipy.stats import spearmanr
 
-N = 6 + 1
-N_USER = 4
+N = 0 + 1
+N_USER = 1
 
 DBDATA = os.path.join("bdata", "{0:02d}")
 FGAZE = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_gaze.csv")
@@ -35,9 +35,9 @@ COLLISION_FLAG = [
 ]
 
 ROBOT_NUM = [1, 3, 3, 1, 3, 3, 1, 2, 2, 2, 2]
-Y_ROTATE = [90, 0, 180, 270, 0, 180, 270, 0, 180, 0, 180]
+# Y_ROTATE = [90, 0, 180, 270, 0, 180, 270, 0, 180, 0, 180]
 TASK_ORDER = [
-    [],
+    [2, 3, 1, 0],
     [],
     [],
     [1, 4, 2, 3],
@@ -160,7 +160,7 @@ def convert_binary(userId, uiId):
     filename = FGAZE.format(userId, uiId)
     with open(filename, 'r', encoding="utf-8-sig") as f:
         reader = csv.reader(f)
-        next(reader) # time, l_pos_x, l_pos_y, l_pos_z, l_qua_x, l_qua_y, l_qua_z, l_qua_w, r_pos_x, r_pos_y, r_pos_z, r_qua_x, r_qua_y, r_qua_z, r_qua_w, obj
+        next(reader) # time, l_pos_x, l_pos_y, l_pos_z, l_qua_x, l_qua_y, l_qua_z, l_qua_w, r_pos_x, r_pos_y, r_pos_z, r_qua_x, r_qua_y, r_qua_z, r_qua_w, obj, l_pupil_d, l_pupil_x, l_pupil_y, r_pupil_d, r_pupil_x, r_pupil_y, l_open, r_open
         for row, hq in zip(reader, head_quats):
             data["time"].append(float(row[0]))
             data["lg_pos"].append((float(row[1]), float(row[2]), float(row[3])))
@@ -170,7 +170,13 @@ def convert_binary(userId, uiId):
             rg_local_q = hq.inv() * R.from_quat((float(row[11]), float(row[12]), float(row[13]), float(row[14])))
             data["rg_rot"].append(rg_local_q.as_euler("xyz", degrees=True))
             data["obj"].append(row[15].strip())
-    
+            data["lg_pupil_d"].append(float(row[16]))
+            data["lg_pupil_pos"].append((float(row[17]), float(row[18])))
+            data["rg_pupil_d"].append(float(row[19]))
+            data["rg_pupil_pos"].append((float(row[20]), float(row[21])))
+            data["lg_open"].append(float(row[22]))
+            data["rg_open"].append(float(row[23]))
+        
     
     filename = FROBOT.format(userId, uiId)
     with open(filename, 'r', encoding="utf-8-sig") as f:
@@ -317,7 +323,7 @@ def split_subtask(userId, uiId):
         pickle.dump(subtask_data, f)
         
 def all_convert_binary(new=False):
-    for i in range(3, N):
+    for i in range(0, N):
         for j in range(0, 4):
             try:
                 if new or not os.path.exists(BDATA.format(i, j)):
@@ -337,10 +343,7 @@ def all_data_concat(new=False):
         userData = []
         for j in range(0, 4):
             try:
-                if i <= 2:
-                    subtask_data = [None] * 9
-                else:
-                    subtask_data = load_subtask(i, j)
+                subtask_data = load_subtask(i, j)
                 userData.append(subtask_data)
             except Exception as e:
                 print("Error {0:02d}_{1:1d}: {2}".format(i, j, e))
@@ -354,7 +357,7 @@ def all_data_concat(new=False):
 
 def new():
     all_data_concat(new=True)
-    convert_subject(new=True)
+    # convert_subject(new=True)
     print("all data converted")
 
 # data load ********************

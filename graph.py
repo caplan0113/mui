@@ -449,7 +449,7 @@ def calculate_change(userId, uiId, attr):
 
 # all data save and show plot *****************************
 
-def save_pdf(func, args=dict(), userIdRange=range(3, N), uiIdRange=range(0, 4)):
+def save_pdf(func, args=dict(), userIdRange=range(0, N), uiIdRange=range(0, 4)):
     os.makedirs("pdf", exist_ok=True)
     pdf_path = PPATH.format(func.__name__)
     pdf = PdfPages(pdf_path)
@@ -463,7 +463,7 @@ def save_pdf(func, args=dict(), userIdRange=range(3, N), uiIdRange=range(0, 4)):
     pdf.close()
     print("Saved PDF: {0}".format(pdf_path))
 
-def show_plot(func, args=dict(), userIdRange=range(3, N), uiIdRange=range(0, 4)):
+def show_plot(func, args=dict(), userIdRange=range(0, N), uiIdRange=range(0, 4)):
     try:
         for userId in userIdRange:
             for uiId in uiIdRange:
@@ -472,7 +472,7 @@ def show_plot(func, args=dict(), userIdRange=range(3, N), uiIdRange=range(0, 4))
         print("Error in {0}: {1}".format(func.__name__, e))
         traceback.print_exc()
 
-def save_pic(func, args=dict(), userIdRange=range(3, N), uiIdRange=range(0, 4)):
+def save_pic(func, args=dict(), userIdRange=range(0, N), uiIdRange=range(0, 4)):
     for userId in userIdRange:
         for uiId in uiIdRange:
             try:
@@ -481,7 +481,7 @@ def save_pic(func, args=dict(), userIdRange=range(3, N), uiIdRange=range(0, 4)):
                 print("Error in {0}: {1}".format(func.__name__, e))
                 traceback.print_exc()
 
-def map_func(func, args=dict(), userIdRange=range(3, N), uiIdRange=range(0, 4)):
+def map_func(func, args=dict(), userIdRange=range(0, N), uiIdRange=range(0, 4)):
     for userId in userIdRange:
         for uiId in uiIdRange:
             try:
@@ -733,22 +733,22 @@ if __name__ == "__main__":
         # map_func(gaze_diff_n, args=dict(n=5))
         # map_func(robot_distance_diff_n, args=dict(n=5))
 
-        # save_pdf(pos_xz_diff_n, args=dict(n=60))
-        # save_pdf(pos_xz)
-        # save_pdf(rot_y_diff_n, args=dict(n=60))
-        # save_pdf(bpm)
-        # save_pdf(robot_distance)
+        save_pdf(pos_xz_diff_n, args=dict(n=60))
+        save_pdf(pos_xz)
+        save_pdf(rot_y_diff_n, args=dict(n=60))
+        save_pdf(bpm)
+        save_pdf(robot_distance)
         save_pdf(robot_distance_diff_n, args=dict(n=60))
-        # save_pdf(rot_y_diff)
-        # save_pdf(rot_y)
-        # save_pdf(twin_xz_roty_diff_n, args=dict(n=60, legends=["Position XZ", "Rotation Y"]))
-        # save_pdf(subtask_time, uiIdRange=range(0, 1))
-        # save_pdf(collision_count, uiIdRange=range(0, 1))
-        # save_pdf(mistake_count, uiIdRange=range(0, 1))
-        # save_pdf(twin_robot_distance_xz_diff_center, args=dict(legends=["Robot Distance", "Position XZ Diff Center"]))
-        # save_pdf(pos_xz_diff_center)
-        # save_pdf(gaze_diff_n, args=dict(n=1))
-        # save_pdf(scatter_pos_xz_diff_center_robot_distance)
+        save_pdf(rot_y_diff)
+        save_pdf(rot_y)
+        save_pdf(twin_xz_roty_diff_n, args=dict(n=60, legends=["Position XZ", "Rotation Y"]))
+        save_pdf(subtask_time, uiIdRange=range(0, 1))
+        save_pdf(collision_count, uiIdRange=range(0, 1))
+        save_pdf(mistake_count, uiIdRange=range(0, 1))
+        save_pdf(twin_robot_distance_xz_diff_center, args=dict(legends=["Robot Distance", "Position XZ Diff Center"]))
+        save_pdf(pos_xz_diff_center)
+        save_pdf(gaze_diff_n, args=dict(n=1))
+        save_pdf(scatter_pos_xz_diff_center_robot_distance)
 
         # warning_plot(5, 1)
         # gaze_diff_n(3, 0, 5)
