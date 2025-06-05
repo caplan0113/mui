@@ -186,6 +186,11 @@ def eye_open(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     subtaskData = all[userId, uiId]
     time_series_plot("Eye Open", [data["lg_open"] for data in subtaskData], subtaskData, ylim=(-0.2, 1.2), figsize=figsize, save=save, pdf=pdf)
 
+def pupil_pos_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save: str =None, pdf=None):
+    subtaskData = all[userId, uiId]
+    plot_data = [ np.concatenate([np.full(n, 0), np.linalg.norm(data["lg_pupil_pos"][n:] - data["lg_pupil_pos"][:-n], axis=1)]) for data in subtaskData ]
+    time_series_plot(f"Pupil Position Diff [m] ({n} frame)", plot_data, subtaskData, ylim=(-0.05, 0.5), figsize=figsize, save=save, pdf=pdf)
+
 def rot_y(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     subtaskData = all[userId, uiId]
     time_series_plot("Rotation_y", [data["rot"][:, 1] for data in subtaskData], subtaskData, figsize=figsize, save=save, pdf=pdf)
@@ -741,6 +746,8 @@ if __name__ == "__main__":
         # map_func(gaze_diff_n, args=dict(n=5))
         # map_func(robot_distance_diff_n, args=dict(n=5))
         # map_func(eye_open)
+        # map_func(pupil_size)
+        map_func(pupil_pos_diff_n, args=dict(n=5))
 
         # save_pdf(pos_xz_diff_n, args=dict(n=60))
         # save_pdf(pos_xz)
@@ -758,8 +765,8 @@ if __name__ == "__main__":
         # save_pdf(pos_xz_diff_center)
         # save_pdf(gaze_diff_n, args=dict(n=1))
         # save_pdf(scatter_pos_xz_diff_center_robot_distance)
-        save_pdf(eye_open)
-        save_pdf(pupil_size)
+        # save_pdf(eye_open)
+        # save_pdf(pupil_size)
 
         # warning_plot(5, 1)
         # gaze_diff_n(3, 0, 5)
