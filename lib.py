@@ -9,7 +9,7 @@ from scipy.spatial.transform import Rotation as R
 from scipy.stats import mode
 from scipy.stats import spearmanr
 
-N = 0 + 1
+N = 6 + 1
 N_USER = 1
 
 DBDATA = os.path.join("bdata", "{0:02d}")
@@ -35,15 +35,14 @@ COLLISION_FLAG = [
 ]
 
 ROBOT_NUM = [1, 3, 3, 1, 3, 3, 1, 2, 2, 2, 2]
-# Y_ROTATE = [90, 0, 180, 270, 0, 180, 270, 0, 180, 0, 180]
 TASK_ORDER = [
     [4, 3, 1, 2],
-    [],
-    [],
-    [1, 4, 2, 3],
+    [3, 1, 4, 2],
+    [2, 3, 1, 3],
+    [2, 4, 2, 1],
+    [3, 4, 2, 1],
     [4, 1, 3, 2],
-    [2, 3, 4, 1],
-    [3, 2, 1, 4]
+    [1, 4, 2, 3]
 ]
 
 """
@@ -225,7 +224,7 @@ def convert_subject(new=False):
     
     data = []
     with open(FSUBJECT, "r", encoding="utf-8-sig") as f:
-        reader = csv.reader(f) # Id	開始時刻	完了時刻	メール	名前	被験者ID	Map ID	UI ID	UIについて.UIがわかりやすいと感じた	UIについて.UIが邪魔に感じた	UIについて.UIが便利に感じた	UIについて.UIは信頼できると感じた	ロボットの接近に気づくことができた.接近	接近してくるロボットとの距離を把握することができた.距離	接近してくるロボットの方向を把握することができた.方向	サブタスク中、安全に感じた.安全	VR酔いを感じた.VR酔い	作業負荷に関する質問（NASA-TLX）	自由記述
+        reader = csv.reader(f) # Id	開始時刻	完了時刻	メール	名前	被験者ID	Map ID	UI ID	UIについて.UIが直感的でわかりやすいと感じた	UIについて.UIがタスク中に邪魔に感じた	UIについて.UIがロボットに気づく際に便利に感じた	UIについて.UIがロボットを避けるための支援として信頼できると感じた	ロボットの接近に気づくことができた.接近	接近してくるロボットとの距離を把握することができた.距離	接近してくるロボットの方向を把握することができた.方向	サブタスク中、安全に感じた.安全	VR酔いを感じた.VR酔い	ロボットとの衝突を回避することができた.ロボットとの衝突を回避	作業負荷に関する質問（NASA-TLX）	ロボットがいる環境での作業に対する感想	自由記述
         next(reader)
         for i, row in enumerate(reader):
             if i%4 == 0:
@@ -249,8 +248,10 @@ def convert_subject(new=False):
             data[i//4][uiId]["direction"] = int(row[14])
             data[i//4][uiId]["safe"] = int(row[15])
             data[i//4][uiId]["vr"] = int(row[16])
-            data[i//4][uiId]["comment"] = row[18]
-            for key, value in json.loads(row[17]).items():
+            data[i//4][uiId]["avoid"] = int(row[17])
+            data[i//4][uiId]["ui-comment"] = row[19]
+            data[i//4][uiId]["comment"] = row[20]
+            for key, value in json.loads(row[18]).items():
                 if key == "score":
                     data[i//4][uiId][key] = float(value)
                 else:
@@ -258,7 +259,7 @@ def convert_subject(new=False):
             # data[i//4][uiId]["load"] = json.loads(row[17])
     
     data_ = {
-        key: np.concatenate([np.full((3, 4), -1), np.vectorize(lambda x: x[key])(data)])
+        key:  np.vectorize(lambda x: x[key])(data)
         for key in data[0][0].keys()
     }
     
@@ -357,7 +358,7 @@ def all_data_concat(new=False):
 
 def new():
     all_data_concat(new=True)
-    # convert_subject(new=True)
+    convert_subject(new=True)
     print("all data converted")
 
 # data load ********************
@@ -431,7 +432,6 @@ def rot2vec(rot): # rot: numpy.array(shape=(n, 3))
     base_vec = [0, 0, 1]
     vec = R.from_euler("xyz", rot, degrees=True).apply(base_vec)
     return vec # np.array(shape=(n, 3))
-
 
 def mode_filter(arr, window_size):
     """

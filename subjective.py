@@ -96,12 +96,13 @@ def all_box_plot():
     for attr in KEY.keys():
         box_plot(attr, pdf=pdf, save=False)
     pdf.close()
+    print("All box plots saved to pdf/subjective_box.pdf")
     
 if __name__ == "__main__":
     data = load_subject()
     data = {k: v[3:] for k, v in data.items()}
     # print(get_corr(data["mental"], data["physical"], axis=1))
-    # all_box_plot()
+    all_box_plot()
 
 
     # for r in all_corr():
