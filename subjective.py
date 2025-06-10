@@ -12,7 +12,7 @@ UI_LABEL = ["VA", "VO", "AO", "NO"]
 
 KEY = {"easy": "UI was easy to understand", "annoy": "UI was obstructive", "useful": "UI was helpful", "trust": "UI was trustworthy", 
          "notice": "Noticed robot approaching", "distance": "Perceived distance", "direction": "Perceived direction", 
-         "safe": "Felt safe during subtask", "vr": "Experienced VR sickness", 
+         "safe": "Felt safe during subtask", "vr": "Experienced VR sickness", "avoid": "Avoiding robots", 
          "mental": "NASA-TLX: Mental", "physical": "NASA-TLX: Physical",
          "temporal": "NASA-TLX: Temporal", "performance": "NASA-TLX: Performance",
          "effort": "NASA-TLX: Effort", "frustration": "NASA-TLX: Frustration",
@@ -36,7 +36,7 @@ def get_tick(attr):
 def box_plot(attr, figsize=FIGSIZE, save=SAVE, pdf=None):
     plot_data = data[attr]
     fig, ax = plt.subplots(figsize=figsize)
-    ax.boxplot(plot_data, tick_labels=UI_LABEL, patch_artist=True, meanline=True, showmeans=True)
+    ax.boxplot(plot_data, tick_labels=UI_LABEL, patch_artist=True, meanline=True, showmeans=True, notch=True)
     ax.set_title(KEY[attr])
     ax.set_ylim(get_lim(attr))
     ax.set_yticks(get_tick(attr))
@@ -90,6 +90,7 @@ def all_scatter_plot():
     for attr1, attr2 in combinations(list(KEY.keys()), 2):
         scatter_plot(attr1, attr2, pdf=pdf, save=False)
     pdf.close()
+    print("All scatter plots saved to pdf/subjective_scatter.pdf")
 
 def all_box_plot():
     pdf = PdfPages("pdf/subjective_box.pdf")
@@ -100,7 +101,7 @@ def all_box_plot():
     
 if __name__ == "__main__":
     data = load_subject()
-    data = {k: v[3:] for k, v in data.items()}
+    data = {k: v for k, v in data.items()}
     # print(get_corr(data["mental"], data["physical"], axis=1))
     all_box_plot()
 
@@ -113,4 +114,4 @@ if __name__ == "__main__":
     # print(len(all_corr()))
 
     # scatter_plot("mental", "physical")
-    # all_scatter_plot()
+    all_scatter_plot()

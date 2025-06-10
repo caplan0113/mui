@@ -9,8 +9,18 @@ from scipy.spatial.transform import Rotation as R
 from scipy.stats import mode
 from scipy.stats import spearmanr
 
-N = 6 + 1
-N_USER = 1
+N = 8 + 1
+TASK_ORDER = [
+    [4, 3, 1, 2],
+    [3, 1, 4, 2],
+    [2, 3, 1, 3],
+    [2, 4, 2, 1],
+    [3, 4, 2, 1],
+    [4, 1, 3, 2],
+    [1, 4, 2, 3],
+    [4, 3, 2, 1],
+    [1, 3, 4, 2]
+]
 
 DBDATA = os.path.join("bdata", "{0:02d}")
 FGAZE = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_gaze.csv")
@@ -35,15 +45,6 @@ COLLISION_FLAG = [
 ]
 
 ROBOT_NUM = [1, 3, 3, 1, 3, 3, 1, 2, 2, 2, 2]
-TASK_ORDER = [
-    [4, 3, 1, 2],
-    [3, 1, 4, 2],
-    [2, 3, 1, 3],
-    [2, 4, 2, 1],
-    [3, 4, 2, 1],
-    [4, 1, 3, 2],
-    [1, 4, 2, 3]
-]
 
 """
 allData = [
@@ -356,9 +357,9 @@ def all_data_concat(new=False):
         pickle.dump(data, f)
         print("all.pkl saved")
 
-def new():
-    all_data_concat(new=True)
-    convert_subject(new=True)
+def new(new=False):
+    all_data_concat(new)
+    convert_subject(True)
     print("all data converted")
 
 # data load ********************
