@@ -180,7 +180,7 @@ def robot_distance_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save: str =None,
 
 def pupil_size(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     subtaskData = all[userId, uiId]
-    time_series_plot("Pupil Size", [data["lg_pupil_d"] for data in subtaskData], subtaskData, ylim=(3, 7), figsize=figsize, save=save, pdf=pdf)
+    time_series_plot("Pupil Size", [data["lg_pupil_d"] for data in subtaskData], subtaskData, ylim=(0, 7), figsize=figsize, save=save, pdf=pdf)
 
 def eye_open(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     subtaskData = all[userId, uiId]
@@ -462,9 +462,9 @@ def calculate_change(userId, uiId, attr):
 
 # all data save and show plot *****************************
 
-def save_pdf(func, args=dict(), userIdRange=range(0, N), uiIdRange=range(0, 4)):
+def save_pdf(func, args=dict(), userIdRange=range(0, N), uiIdRange=range(0, 4), name=""):
     os.makedirs("pdf", exist_ok=True)
-    pdf_path = PPATH.format(func.__name__)
+    pdf_path = PPATH.format(func.__name__ + "_" + name)
     pdf = PdfPages(pdf_path)
     try: 
         for userId in userIdRange:
@@ -676,6 +676,27 @@ def scatter_pos_xz_diff_center_robot_distance(userId, uiId, figsize=FIGSIZE, sav
     scatter_plot(data1, data2, "Position XZ Diff Center & Robot Distance: User-{0:02d}, UI-{1} ({2})".format(userId, UI[uiId], subtaskData[0]["taskOrder"]), "Position XZ Diff Center [m]", "Robot Distance [m]", subtaskData, xlim=(0, 6), ylim=(0, 6), figsize=figsize, save=save, pdf=pdf)
 
 
+def scatter_pupil_size_pos_xz_diff_center(userId, uiId, n:int, figsize=FIGSIZE, save=SAVE, pdf=None):
+    subtaskData = all[userId, uiId]
+    data1 = [data["lg_pupil_d"] for data in subtaskData]
+    data2 = [distance(data["pos"], np.array(TASK_TILE_CENTER[data["state"]])) for data in subtaskData]
+
+    scatter_plot(data1, data2, "Pupil Size Diff & Position XZ Diff Center [{0} frame]: User-{1:02d}, UI-{2} ({3})".format(n, userId, UI[uiId], subtaskData[0]["taskOrder"]), "Pupil Size Diff [mm]", "Position XZ Diff Center [m]", subtaskData, xlim=(-0.5, 7), ylim=(0, 6), figsize=figsize, save=save, pdf=pdf)
+
+def scatter_pupil_d_robot_distance(userId, uiId, n: int, figsize=FIGSIZE, save=SAVE, pdf=None):
+    subtaskData = all[userId, uiId]
+    data1 = [slide(data["lg_pupil_d"], n) for data in subtaskData]
+    data2 = [data["min_dist"] for data in subtaskData]
+
+    scatter_plot(data1, data2, "Pupil Size Diff [slide:{0} frame] & Robot Distance: User-{1:02d}, UI-{2} ({3})".format(n, userId, UI[uiId], subtaskData[0]["taskOrder"]), "Pupil Size Diff [mm]", "Robot Distance [m]", subtaskData, xlim=(-0.5, 7), ylim=(0, 6), figsize=figsize, save=save, pdf=pdf)
+
+def scatter_warning_pupil_d(userId, uiId, n: int, figsize=FIGSIZE, save=SAVE, pdf=None):
+    subtaskData = all[userId, uiId]
+    data1 = [slide(data["lg_pupil_d"], n) for data in subtaskData]
+    data2 = [data["warning"] for data in subtaskData]
+
+    scatter_plot(data1, data2, "Pupil Size Diff & Warning: User-{0:02d}, UI-{1} ({2})".format(userId, UI[uiId], subtaskData[0]["taskOrder"]), "Pupil Size Diff [mm]", "Warning", subtaskData, xlim=(-0.5, 7), ylim=(-0.3, 3.3), figsize=figsize, save=save, pdf=pdf)
+
 def scatter_plot(data1, data2, title, xlabel, ylabel, subtaskData, xlim, ylim, figsize=FIGSIZE, save=SAVE, pdf=None):
     fig, axs = plt.subplots(ncols=3, nrows=3, figsize=figsize)
 
@@ -702,12 +723,59 @@ def scatter_plot(data1, data2, title, xlabel, ylabel, subtaskData, xlim, ylim, f
         d1_1, d2_1 = d1[mask1], d2[mask1]
         d1_2, d2_2 = d1[mask2], d2[mask2]
         d1_3, d2_3 = d1[mask3], d2[mask3]
-        ax.scatter(d1_0, d2_0, color="green", s=5, label="Warning 0")
-        ax.scatter(d1_1, d2_1, color="gold", s=5, label="Warning 1")
-        ax.scatter(d1_2, d2_2, color="darkorange", s=5, label="Warning 2")
-        ax.scatter(d1_3, d2_3, color="red", s=5, label="Warning 3")
+        ax.scatter(d1_0, d2_0, color="green", s=5, label="Warning 0", alpha=0.7)
+        ax.scatter(d1_1, d2_1, color="gold", s=5, label="Warning 1", alpha=0.7)
+        ax.scatter(d1_2, d2_2, color="darkorange", s=5, label="Warning 2", alpha=0.7)
+        ax.scatter(d1_3, d2_3, color="red", s=5, label="Warning 3", alpha=0.7)
         ax.set_xlim(*xlim)
         ax.set_ylim(*ylim)
+    
+    fig.supxlabel(xlabel, x=0.5, y=0.01)
+    fig.supylabel(ylabel, x=0.01, y=0.5)
+
+    if save:
+        os.makedirs(f"pic/{save}", exist_ok=True)
+        plt.savefig(PATH.format(save, 0, 9), dpi=DPI)
+    elif pdf:
+        pdf.savefig(fig)
+    else:
+        plt.show()
+    plt.close()
+
+# box plot *****************************
+
+def box_warning_pupil_d(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
+    subtaskData = all[userId, uiId]
+    
+    data = []
+    for sub in subtaskData:
+        subData = []
+        for i in range(4):
+            mask = sub["warning"] == i
+            if np.any(mask):
+                arr = sub["lg_pupil_d"][mask]
+                arr = arr[arr != 0]  # Exclude 0 values
+                arr = arr[arr != -1]
+                subData.append(arr)  # Exclude -1 and 0 values
+            else:
+                subData.append(np.array([]))
+        data.append(subData)
+
+    box_plot(data, "Pupil Size Diff & Warning: User-{0:02d}, UI-{1} ({2})".format(userId, UI[uiId], subtaskData[0]["taskOrder"]), "Pupil Size Diff [mm]", "Warning", subtaskData, xticklabel=range(4), ylim=(2, 8), figsize=figsize, save=save, pdf=pdf)
+
+def box_plot(data, title, xlabel, ylabel, subtaskData, xticklabel, ylim, figsize=FIGSIZE, save=SAVE, pdf=None):
+    fig, axs = plt.subplots(nrows=3, ncols=3, figsize=figsize)
+    fig.suptitle(title)
+    fig.subplots_adjust(hspace=0.3, left=0.06, right=0.98, top=0.9, wspace=0.11, bottom=0.08)
+
+    axs = axs.flatten()
+
+    for i, (ax, d) in enumerate(zip(axs, data)):
+        ax.boxplot(d, patch_artist=True, notch=True, showmeans=True, meanline=True, tick_labels=xticklabel)
+        ax.set_title("Subtask {0}".format(subtaskData[i]["label"]))
+        ax.set_ylim(*ylim)
+        # ax.set_xlabel(xlabel)
+        # ax.set_ylabel(ylabel)
     
     fig.supxlabel(xlabel, x=0.5, y=0.01)
     fig.supylabel(ylabel, x=0.01, y=0.5)
@@ -749,36 +817,31 @@ if __name__ == "__main__":
         # map_func(pupil_size)
         # map_func(pupil_pos_diff_n, args=dict(n=5))
 
-        save_pdf(pos_xz_diff_n, args=dict(n=60))
-        save_pdf(pos_xz)
-        save_pdf(rot_y_diff_n, args=dict(n=60))
-        save_pdf(bpm)
-        save_pdf(robot_distance)
-        save_pdf(robot_distance_diff_n, args=dict(n=60))
-        save_pdf(rot_y_diff)
-        save_pdf(rot_y)
-        save_pdf(twin_xz_roty_diff_n, args=dict(n=60, legends=["Position XZ", "Rotation Y"]))
-        save_pdf(subtask_time, uiIdRange=range(0, 1))
-        save_pdf(collision_count, uiIdRange=range(0, 1))
-        save_pdf(mistake_count, uiIdRange=range(0, 1))
-        save_pdf(twin_robot_distance_xz_diff_center, args=dict(legends=["Robot Distance", "Position XZ Diff Center"]))
-        save_pdf(pos_xz_diff_center)
-        save_pdf(gaze_diff_n, args=dict(n=1))
-        save_pdf(scatter_pos_xz_diff_center_robot_distance)
-        save_pdf(eye_open)
-        save_pdf(pupil_size)
+        # box_warning_pupil_d(3, 0)
 
-        # warning_plot(5, 1)
-        # gaze_diff_n(3, 0, 5)
-        # map_func(gaze_diff_n, args=dict(n=2))
-        # collision_count(3, 0)
-        # map_func(collision_count, uiIdRange=range(0, 1))
-        # twin_robot_distance_xz_diff_center(3, 0, legends=["Robot Distance", "Position XZ Diff Center"])
-        # warning_plot(3, 0)
-        # map_func(rot_y_diff_n, args=dict(n=60), userIdRange=range(3, N), uiIdRange=range(0, 4))
-        # map_func(pos_xz_diff_n, args=dict(n=60), userIdRange=range(3, N), uiIdRange=range(0, 4))
-        # scatter_pos_xz_diff_center_robot_distance(3, 0)
-        # twin_rot_y_gaze(4, 0, legends=["Left Gaze", "Right Gaze"])
+        # save_pdf(pos_xz_diff_n, args=dict(n=60))
+        # save_pdf(pos_xz)
+        # save_pdf(rot_y_diff_n, args=dict(n=60))
+        # save_pdf(bpm)
+        # save_pdf(robot_distance)
+        # save_pdf(robot_distance_diff_n, args=dict(n=60))
+        # save_pdf(rot_y_diff)
+        # save_pdf(rot_y)
+        # save_pdf(twin_xz_roty_diff_n, args=dict(n=60, legends=["Position XZ", "Rotation Y"]))
+        # save_pdf(subtask_time, uiIdRange=range(0, 1))
+        # save_pdf(collision_count, uiIdRange=range(0, 1))
+        # save_pdf(mistake_count, uiIdRange=range(0, 1))
+        # save_pdf(twin_robot_distance_xz_diff_center, args=dict(legends=["Robot Distance", "Position XZ Diff Center"]))
+        # save_pdf(pos_xz_diff_center)
+        # save_pdf(gaze_diff_n, args=dict(n=1))
+        # save_pdf(scatter_pos_xz_diff_center_robot_distance)
+        # save_pdf(eye_open)
+        # save_pdf(pupil_size)
+        # save_pdf(scatter_pupil_size_pos_xz_diff_center, args=dict(n=5))
+        # save_pdf(scatter_pupil_d_robot_distance, args=dict(n=60))
+        # save_pdf(scatter_warning_pupil_d, args=dict(n=0))
+        save_pdf(box_warning_pupil_d, uiIdRange=range(3, 4), name="NO")
+
         pass
     except Exception as e:
         traceback.print_exc()

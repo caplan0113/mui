@@ -9,17 +9,13 @@ from scipy.spatial.transform import Rotation as R
 from scipy.stats import mode
 from scipy.stats import spearmanr
 
-N = 8 + 1
+N = 9 + 1
 TASK_ORDER = [
-    [4, 3, 1, 2],
-    [3, 1, 4, 2],
-    [2, 3, 1, 3],
-    [2, 4, 2, 1],
-    [3, 4, 2, 1],
-    [4, 1, 3, 2],
-    [1, 4, 2, 3],
-    [4, 3, 2, 1],
-    [1, 3, 4, 2]
+    [4, 3, 1, 2], [3, 1, 4, 2], [2, 4, 1, 3], [2, 4, 3, 1], [3, 4, 2, 1], 
+    [4, 1, 3, 2], [1, 4, 2, 3], [4, 3, 2, 1], [1, 3, 4, 2], [4, 2, 1, 3],
+    [1, 2, 4, 3], [2, 1, 4, 3], [3, 1, 2, 4], [4, 2, 3, 1], [3, 2, 4, 1],
+    [1, 3, 2, 4], [2, 3, 4, 1], [2, 1, 3, 4], [4, 1, 2, 3], [3, 2, 1, 4],
+    [1, 4, 3, 2], [3, 4, 1, 2], [2, 3, 1, 4], [1, 2, 3, 4]
 ]
 
 DBDATA = os.path.join("bdata", "{0:02d}")
@@ -74,6 +70,13 @@ subtaskData = {
     "lg_rot": np.array(float) | shape(frameNum, 3), # left eye rotation
     "rg_pos": np.array(float) | shape(frameNum, 3), # right eye position
     "rg_rot": np.array(float) | shape(frameNum, 3), # right eye rotation
+
+    "lg_pupil_d": np.array(float) | shape(frameNum, ), # left eye pupil diameter
+    "lg_pupil_pos": np.array(float) | shape(frameNum, 2), # left eye pupil position
+    "rg_pupil_d": np.array(float) | shape(frameNum, ), # right eye pupil diameter
+    "rg_pupil_pos": np.array(float) | shape(frameNum, 2), # right eye pupil position
+    "lg_open": np.array(float) | shape(frameNum, ), # left eye open
+    "rg_open": np.array(float) | shape(frameNum, ), # right eye open
     
     "obj": np.array(str) | shape(frameNum, ), # gaze object name
     "bpm": np.array(int) | shape(frameNum, ), # heart rate
@@ -433,6 +436,13 @@ def rot2vec(rot): # rot: numpy.array(shape=(n, 3))
     base_vec = [0, 0, 1]
     vec = R.from_euler("xyz", rot, degrees=True).apply(base_vec)
     return vec # np.array(shape=(n, 3))
+
+
+def slide(data, n):
+    if n <= 0:
+        return data
+    return np.concatenate([np.zeros(n), data[: -n]])
+
 
 def mode_filter(arr, window_size):
     """
