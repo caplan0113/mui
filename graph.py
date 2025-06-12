@@ -3,6 +3,7 @@ import numpy as np
 from lib import *
 from matplotlib.backends.backend_pdf import PdfPages
 import math
+from scipy import stats
 
 TITLE = {"obj": "Eye tracking", "pos": "Camera Position", "rot": "Camera Rotation", "bpm": "Heart rate", "trigger": "Button", "state": "State", "subTask": "Subtask", "warning": "Warning", "collision": "Collision"}
 UI = ["VA", "VO", "AO", "NO"]
@@ -464,7 +465,7 @@ def calculate_change(userId, uiId, attr):
 
 def save_pdf(func, args=dict(), userIdRange=range(0, N), uiIdRange=range(0, 4), name=""):
     os.makedirs("pdf", exist_ok=True)
-    pdf_path = PPATH.format(func.__name__ + "_" + name)
+    pdf_path = PPATH.format(func.__name__ + name)
     pdf = PdfPages(pdf_path)
     try: 
         for userId in userIdRange:
@@ -763,6 +764,52 @@ def box_warning_pupil_d(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
 
     box_plot(data, "Pupil Size Diff & Warning: User-{0:02d}, UI-{1} ({2})".format(userId, UI[uiId], subtaskData[0]["taskOrder"]), "Pupil Size Diff [mm]", "Warning", subtaskData, xticklabel=range(4), ylim=(2, 8), figsize=figsize, save=save, pdf=pdf)
 
+def box_sum_warning_pupil_d(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
+    userData = all[userId]
+    
+    data = []
+    for subtaskData in userData:
+        subData = [[] for _ in range(2)]  # Create a list for each warning level
+        for sub in subtaskData:
+            for i in range(4):
+                mask = sub["warning"] == i
+                if np.any(mask):
+                    arr = sub["lg_pupil_d"][mask]
+                    arr = arr[arr != 0]  # Exclude 0 values
+                    arr = arr[arr != -1]
+                    subData[int(i>=1)].extend(arr)  # Sum of pupil size differences
+        data.append(subData)
+
+    fig, axs = plt.subplots(nrows=2, ncols=2, figsize=figsize)
+    fig.subplots_adjust(hspace=0.3, left=0.06, right=0.98, top=0.9, wspace=0.11, bottom=0.08)
+    fig.suptitle("Sum of Pupil Size Diff & Warning: User-{0:02d}".format(userId))
+    axs = axs.flatten()
+    xticklabel = range(2)
+
+    for i, (ax, d) in enumerate(zip(axs, data)):
+        ax.boxplot(d, patch_artist=True, notch=True, showmeans=True, meanline=True, tick_labels=xticklabel)
+        test = samples_test_ind(d[0], d[1])[1]
+        p = " *" if test else ""
+        ax.set_title("UI-{0} ({1})".format(UI[i], userData[i][0]["taskOrder"])+ p)
+        ax.set_ylim(0, 9)
+        print("userId: {0}, UI: {1}| {2}".format(userId, UI[i], test))
+        # ax.set_xlabel("Warning")
+        # ax.set_ylabel("Pupil Size Diff [mm]")
+    fig.supxlabel("Warning", x=0.5, y=0.01)
+    fig.supylabel("Pupil Size Diff [mm]", x=0.01, y=0.5)
+
+    if save:
+        os.makedirs(f"pic/{save}", exist_ok=True)
+        plt.savefig(PATH.format(save, userId, 9), dpi=DPI)
+    elif pdf:
+        pdf.savefig(fig)
+    else:
+        plt.show()
+        pass
+    
+    plt.close()
+
+
 def box_plot(data, title, xlabel, ylabel, subtaskData, xticklabel, ylim, figsize=FIGSIZE, save=SAVE, pdf=None):
     fig, axs = plt.subplots(nrows=3, ncols=3, figsize=figsize)
     fig.suptitle(title)
@@ -818,6 +865,8 @@ if __name__ == "__main__":
         # map_func(pupil_pos_diff_n, args=dict(n=5))
 
         # box_warning_pupil_d(3, 0)
+        # box_sum_warning_pupil_d(3, 0)
+        # map_func(box_sum_warning_pupil_d, uiIdRange=range(0, 1))
 
         # save_pdf(pos_xz_diff_n, args=dict(n=60))
         # save_pdf(pos_xz)
@@ -840,7 +889,8 @@ if __name__ == "__main__":
         # save_pdf(scatter_pupil_size_pos_xz_diff_center, args=dict(n=5))
         # save_pdf(scatter_pupil_d_robot_distance, args=dict(n=60))
         # save_pdf(scatter_warning_pupil_d, args=dict(n=0))
-        save_pdf(box_warning_pupil_d, uiIdRange=range(3, 4), name="NO")
+        # save_pdf(box_warning_pupil_d, uiIdRange=range(3, 4), name="_NO")
+        save_pdf(box_sum_warning_pupil_d, uiIdRange=range(1), name="_0-1")
 
         pass
     except Exception as e:

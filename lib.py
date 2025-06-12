@@ -6,8 +6,10 @@ from collections import defaultdict
 import os
 import pickle
 from scipy.spatial.transform import Rotation as R
-from scipy.stats import mode
-from scipy.stats import spearmanr
+from scipy.stats import mode, spearmanr, shapiro, ttest_rel, wilcoxon, normaltest, ttest_ind, mannwhitneyu
+import warnings
+warnings.filterwarnings("error", category=UserWarning)
+warnings.filterwarnings("error", category=RuntimeWarning)
 
 N = 9 + 1
 TASK_ORDER = [
@@ -489,5 +491,83 @@ def get_corr(data1, data2, axis=0):
     if axis == 1:
         data1 = np.array(data1).T
         data2 = np.array(data2).T
-    result = np.array([float(spearmanr(d1, d2).statistic) for d1, d2 in zip(data1, data2)])
+    
+    result = []
+    for d1, d2 in zip(data1, data2):
+        if len(d1) == 0 or len(d2) == 0:
+            result.append(np.nan)
+            continue
+        try:
+            corr = spearmanr(d1, d2).statistic
+        except ValueError as e:
+            print(f"ValueError in get_corr: {e}")
+            corr = np.nan
+        except Warning as e:
+            print(f"Warning in get_corr: {e}")
+            corr = np.nan
+        result.append(corr)
+    
+    result = np.array(result)
     return result
+
+def ND_test(data):
+    try:
+        if len(data) <= 5000:
+            statistic, p_value = shapiro(data)
+        else:
+            statistic, p_value = normaltest(data)
+    except UserWarning as e:
+        print(f"Warning in ND_test: {e}")
+        return False
+    except RuntimeWarning as e:
+        print(f"RuntimeWarning in ND_test: {e}")
+        return False
+    except Warning as e:
+        print(f"Warning in ND_test: {e}")
+        return False
+
+    if p_value < 0.05:
+        return False  # データは正規分布に従わない
+    else:
+        return True  # データは正規分布に従う
+
+def samples_test_ind(data1, data2):
+    alpha = 0.05
+
+    try:
+        if ND_test(data1) and ND_test(data2):
+            statistic, p_value = ttest_rel(data1, data2)
+        else:
+            statistic, p_value = wilcoxon(data1, data2)
+    except UserWarning as e:
+        print(f"Warning in samples_test_ind: {e}")
+        statistic, p_value = 0, 1
+    except RuntimeWarning as e:
+        print(f"RuntimeWarning in samples_test_ind: {e}")
+        statistic, p_value = 0, 1
+    except Warning as e:
+        print(f"Warning in samples_test_ind: {e}")
+        statistic, p_value = 0, 1
+
+    return statistic, p_value < alpha
+
+def samples_test_ind(data1, data2):
+    alpha = 0.05
+
+    try:
+        if ND_test(data1) and ND_test(data2):
+            statistic, p_value = ttest_ind(data1, data2)
+        else:
+            statistic, p_value = mannwhitneyu(data1, data2)
+    except UserWarning as e:
+        print(f"Warning in samples_test_ind: {e}")
+        statistic, p_value = 0, 1
+    except RuntimeWarning as e:
+        print(f"RuntimeWarning in samples_test_ind: {e}")
+        statistic, p_value = 0, 1
+    except Warning as e:
+        print(f"Warning in samples_test_ind: {e}")
+        statistic, p_value = 0, 1
+
+    return statistic, p_value < alpha
+
