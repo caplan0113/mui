@@ -11,7 +11,7 @@ import warnings
 warnings.filterwarnings("error", category=UserWarning)
 warnings.filterwarnings("error", category=RuntimeWarning)
 
-N = 9 + 1
+N = 13 + 1
 TASK_ORDER = [
     [4, 3, 1, 2], [3, 1, 4, 2], [2, 4, 1, 3], [2, 4, 3, 1], [3, 4, 2, 1], 
     [4, 1, 3, 2], [1, 4, 2, 3], [4, 3, 2, 1], [1, 3, 4, 2], [4, 2, 1, 3],
@@ -26,6 +26,7 @@ FPLAYER = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_player.csv")
 FROBOT = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_robot.csv")
 FINFO = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_taskinfo.json")
 FSUBJECT = os.path.join("data", "subject.csv")
+FSUBJECT_ATTR = os.path.join("data", "subject_attr.csv")
 BDATA = os.path.join("bdata", "{0:02d}", "{0:02d}_{1:1d}.pkl")
 BDATA_SUBTASK = os.path.join("bdata", "{0:02d}", "{0:02d}_{1:1d}_subtask.pkl")
 
@@ -46,9 +47,6 @@ ROBOT_NUM = [1, 3, 3, 1, 3, 3, 1, 2, 2, 2, 2]
 
 """
 allData = [
-    [nullData, nullData, nullData, nullData], # userId 0: null
-    [nullData, nullData, nullData, nullData], # userId 1: null
-    [nullData, nullData, nullData, nullData], # userId 2: null
     [taskData-0, taskData-1, taskData-2, taskData-3], # userId 3
     [taskData-0, taskData-1, taskData-2, taskData-3], # userId 4
     ...
@@ -126,6 +124,7 @@ subjectiveData = {
     "direction": np.array(int) | shape(userNum, 4), # direction (1-7)
     "safe": np.array(int) | shape(userNum, 4), # safe (1-7)
     "vr": np.array(int) | shape(userNum, 4), # vr sickness (1-7)
+    "avoid": np.array(int) | shape(userNum, 4), # avoid robot (1-7)
 
     "mental": np.array(int) | shape(userNum, 4), # NASA-TLX mental load (0-100)
     "physical": np.array(int) | shape(userNum, 4), # NASA-TLX physical load (0-100)
@@ -143,44 +142,47 @@ subjectiveData = {
 def convert_binary(userId, uiId):
     data = defaultdict(list)
 
+    with warnings.catch_warnings():
+        warnings.simplefilter("default", category=UserWarning)
+        warnings.simplefilter("default", category=RuntimeWarning)
 
-    head_quats = []
-    filename = FPLAYER.format(userId, uiId)
-    with open(filename, 'r', encoding="utf-8-sig") as f:
-        reader = csv.reader(f)
-        next(reader) # time, pos_x, pos_y, pos_z, qua_x, qua_y, qua_z, qua_w, bpm, trigger, state, subTask, count(robot), collision
-        for row in reader:
-            data["pos"].append((float(row[1]), float(row[2]), float(row[3])))
-            hq = R.from_quat((float(row[4]), float(row[5]), float(row[6]), float(row[7])))
-            head_quats.append(hq)
-            data["rot"].append(hq.as_euler("xyz", degrees=True))
-            data["bpm"].append(int(row[8]))
-            data["trigger"].append(bool(int(row[9])))
-            data["state"].append(int(row[10]))
-            data["subTask"].append(bool(int(row[11])))
-            data["warning"].append(int(row[12]))
-            data["collision"].append(bool(int(row[13])))
+        head_quats = []
+        filename = FPLAYER.format(userId, uiId)
+        with open(filename, 'r', encoding="utf-8-sig") as f:
+            reader = csv.reader(f)
+            next(reader) # time, pos_x, pos_y, pos_z, qua_x, qua_y, qua_z, qua_w, bpm, trigger, state, subTask, count(robot), collision
+            for row in reader:
+                data["pos"].append((float(row[1]), float(row[2]), float(row[3])))
+                hq = R.from_quat((float(row[4]), float(row[5]), float(row[6]), float(row[7])))
+                head_quats.append(hq)
+                data["rot"].append(hq.as_euler("xyz", degrees=True))
+                data["bpm"].append(int(row[8]))
+                data["trigger"].append(bool(int(row[9])))
+                data["state"].append(int(row[10]))
+                data["subTask"].append(bool(int(row[11])))
+                data["warning"].append(int(row[12]))
+                data["collision"].append(bool(int(row[13])))
 
 
-    filename = FGAZE.format(userId, uiId)
-    with open(filename, 'r', encoding="utf-8-sig") as f:
-        reader = csv.reader(f)
-        next(reader) # time, l_pos_x, l_pos_y, l_pos_z, l_qua_x, l_qua_y, l_qua_z, l_qua_w, r_pos_x, r_pos_y, r_pos_z, r_qua_x, r_qua_y, r_qua_z, r_qua_w, obj, l_pupil_d, l_pupil_x, l_pupil_y, r_pupil_d, r_pupil_x, r_pupil_y, l_open, r_open
-        for row, hq in zip(reader, head_quats):
-            data["time"].append(float(row[0]))
-            data["lg_pos"].append((float(row[1]), float(row[2]), float(row[3])))
-            lg_local_q = hq.inv() * R.from_quat((float(row[4]), float(row[5]), float(row[6]), float(row[7])))
-            data["lg_rot"].append(lg_local_q.as_euler("xyz", degrees=True))
-            data["rg_pos"].append((float(row[8]), float(row[9]), float(row[10])))
-            rg_local_q = hq.inv() * R.from_quat((float(row[11]), float(row[12]), float(row[13]), float(row[14])))
-            data["rg_rot"].append(rg_local_q.as_euler("xyz", degrees=True))
-            data["obj"].append(row[15].strip())
-            data["lg_pupil_d"].append(float(row[16]))
-            data["lg_pupil_pos"].append((float(row[17]), float(row[18])))
-            data["rg_pupil_d"].append(float(row[19]))
-            data["rg_pupil_pos"].append((float(row[20]), float(row[21])))
-            data["lg_open"].append(float(row[22]))
-            data["rg_open"].append(float(row[23]))
+        filename = FGAZE.format(userId, uiId)
+        with open(filename, 'r', encoding="utf-8-sig") as f:
+            reader = csv.reader(f)
+            next(reader) # time, l_pos_x, l_pos_y, l_pos_z, l_qua_x, l_qua_y, l_qua_z, l_qua_w, r_pos_x, r_pos_y, r_pos_z, r_qua_x, r_qua_y, r_qua_z, r_qua_w, obj, l_pupil_d, l_pupil_x, l_pupil_y, r_pupil_d, r_pupil_x, r_pupil_y, l_open, r_open
+            for row, hq in zip(reader, head_quats):
+                data["time"].append(float(row[0]))
+                data["lg_pos"].append((float(row[1]), float(row[2]), float(row[3])))
+                lg_local_q = hq.inv() * R.from_quat((float(row[4]), float(row[5]), float(row[6]), float(row[7])))
+                data["lg_rot"].append(lg_local_q.as_euler("xyz", degrees=True))
+                data["rg_pos"].append((float(row[8]), float(row[9]), float(row[10])))
+                rg_local_q = hq.inv() * R.from_quat((float(row[11]), float(row[12]), float(row[13]), float(row[14])))
+                data["rg_rot"].append(rg_local_q.as_euler("xyz", degrees=True))
+                data["obj"].append(row[15].strip())
+                data["lg_pupil_d"].append(float(row[16]))
+                data["lg_pupil_pos"].append((float(row[17]), float(row[18])))
+                data["rg_pupil_d"].append(float(row[19]))
+                data["rg_pupil_pos"].append((float(row[20]), float(row[21])))
+                data["lg_open"].append(float(row[22]))
+                data["rg_open"].append(float(row[23]))
         
     
     filename = FROBOT.format(userId, uiId)
@@ -226,6 +228,7 @@ def convert_binary(userId, uiId):
 
 def convert_subject(new=False):
     if not new and os.path.exists(os.path.join("bdata", "subject.pkl")):
+        print("subject.pkl already exists")
         return
     
     data = []
@@ -367,6 +370,47 @@ def new(new=False):
     convert_subject(True)
     print("all data converted")
 
+def convert_subject_attr(new=False):
+    if not new and os.path.exists(os.path.join("bdata", "subject_attr.pkl")):
+        print("subject_attr.pkl already exists")
+        return
+    
+    data = defaultdict(list)
+    
+    with open(FSUBJECT_ATTR, "r", encoding="utf-8-sig") as f:
+        reader = csv.reader(f)
+        next(reader) # a, b, c, d, e, userId, Faculty, Age, Gender, Exercise, Duration, Mobile, Console, VR, Genre, Sleep, Waking, Health, Correction, Vision, Refraction
+    
+        for row in reader:
+            userId = int(row[5])
+            data["userId"].append(userId)
+            data["faculty"].append(row[6])
+            data["age"].append(int(row[7]))
+            if row[8] == "男性":
+                data["gender"].append("m")
+            elif row[8] == "女性":
+                data["gender"].append("f")
+            else:
+                data["gender"].append("o")
+        
+            data["exercise"].append(row[9])
+            data["duration"].append(row[10])
+            data["mobile"].append(row[11])
+            data["console"].append(row[12])
+            data["vr"].append(row[13])
+            data["genre"].append(row[14])
+            data["sleep"].append(float(row[15]))
+            data["waking"].append(float(row[16]))
+            data["health"].append(int(row[17]))
+            data["correction"].append(row[18])
+            data["vision"].append(row[19])
+            data["refraction"].append(row[20])
+
+    os.makedirs("bdata", exist_ok=True)
+    with open(os.path.join("bdata", "subject_attr.pkl"), "wb") as f:
+        pickle.dump(data, f)
+        print("subject_attr.pkl saved")
+
 # data load ********************
 def load_binary(userId, uiId):
     filename = BDATA.format(userId, uiId)
@@ -418,6 +462,13 @@ def load_all(): # load all objective data
     
     return data
 
+def load_subject_attr(): # load subjective attribute data
+    filename = os.path.join("bdata", "subject_attr.pkl")
+    if not os.path.exists(filename):
+        convert_subject_attr()
+    with open(filename, "rb") as f:
+        data = pickle.load(f)
+    return data
 
 # data convert ********************
 """
@@ -488,6 +539,10 @@ def get_warning_mask(warning, window=5):
     return masks
 
 def get_corr(data1, data2, axis=0):
+    if np.array(data1).ndim == 1:
+        data1 = np.array(data1).reshape(-1, 1)
+        data2 = np.array(data2).reshape(-1, 1)
+
     if axis == 1:
         data1 = np.array(data1).T
         data2 = np.array(data2).T

@@ -58,11 +58,8 @@ easy = subjectData["easy"][3][0] # int
 
 ```python
 allData = [
-    [nullData, nullData, nullData, nullData], # userId 0: null
-    [nullData, nullData, nullData, nullData], # userId 1: null
-    [nullData, nullData, nullData, nullData], # userId 2: null
-    [taskData-0, taskData-1, taskData-2, taskData-3], # userId 3
-    [taskData-0, taskData-1, taskData-2, taskData-3], # userId 4
+    [taskData-0, taskData-1, taskData-2, taskData-3], # userId 0
+    [taskData-0, taskData-1, taskData-2, taskData-3], # userId 1
     ...
 ]: np.array(list) | shape(UserNUM, 4) # [userId, uiId, subtaskId]
 
@@ -73,9 +70,6 @@ taskData = [
     ...
     subtaskData-8: dict()
 ] : np.array(dict()) | shape(9, )
-
-# ---
-nullData = [None] * 9 : np.array() | shape(9, )
 
 # **********************
 subtaskData = {
@@ -88,6 +82,13 @@ subtaskData = {
     "lg_rot": np.array(float) | shape(frameNum, 3), # left eye rotation
     "rg_pos": np.array(float) | shape(frameNum, 3), # right eye position
     "rg_rot": np.array(float) | shape(frameNum, 3), # right eye rotation
+
+    "lg_pupil_d": np.array(float) | shape(frameNum, ), # left eye pupil diameter
+    "lg_pupil_pos": np.array(float) | shape(frameNum, 2), # left eye pupil position
+    "rg_pupil_d": np.array(float) | shape(frameNum, ), # right eye pupil diameter
+    "rg_pupil_pos": np.array(float) | shape(frameNum, 2), # right eye pupil position
+    "lg_open": np.array(float) | shape(frameNum, ), # left eye open
+    "rg_open": np.array(float) | shape(frameNum, ), # right eye open
     
     "obj": np.array(str) | shape(frameNum, ), # gaze object name
     "bpm": np.array(int) | shape(frameNum, ), # heart rate
@@ -103,8 +104,8 @@ subtaskData = {
 
     # info
     "userId": int, # user id
-    "uiId": int # ui id
-    "taskOrder": int # task order
+    "uiId": int, # ui id
+    "taskOrder": int, # task order
     "state": int, # subtask id
     "taskTime": float, # subtask time
     "taskCollision": int, # task collision count
@@ -140,6 +141,7 @@ subjectiveData = {
     "direction": np.array(int) | shape(userNum, 4), # direction (1-7)
     "safe": np.array(int) | shape(userNum, 4), # safe (1-7)
     "vr": np.array(int) | shape(userNum, 4), # vr sickness (1-7)
+    "avoid": np.array(int) | shape(userNum, 4), # avoid robot (1-7)
 
     "mental": np.array(int) | shape(userNum, 4), # NASA-TLX mental load (0-100)
     "physical": np.array(int) | shape(userNum, 4), # NASA-TLX physical load (0-100)

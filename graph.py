@@ -4,6 +4,7 @@ from lib import *
 from matplotlib.backends.backend_pdf import PdfPages
 import math
 from scipy import stats
+import itertools
 
 TITLE = {"obj": "Eye tracking", "pos": "Camera Position", "rot": "Camera Rotation", "bpm": "Heart rate", "trigger": "Button", "state": "State", "subTask": "Subtask", "warning": "Warning", "collision": "Collision"}
 UI = ["VA", "VO", "AO", "NO"]
@@ -208,7 +209,7 @@ def rot_y_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save: str =None, pdf=None
 
 def bpm(userId, uiId, figsize=FIGSIZE, save:str =None, pdf=None):
     subtaskData = all[userId, uiId]
-    time_series_plot("Heart Rate", [data["bpm"] for data in subtaskData], subtaskData, figsize=figsize, save=save, pdf=pdf)
+    time_series_plot("Heart Rate", [data["bpm"] for data in subtaskData], subtaskData, ylim=(60, 120), figsize=figsize, save=save, pdf=pdf)
 
 def pos_x_diff_n(userId, uiId, n:int, figsize=FIGSIZE, save:str =None, pdf=None):
     subtaskData = all[userId, uiId]
@@ -792,7 +793,7 @@ def box_sum_warning_pupil_d(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
         p = " *" if test else ""
         ax.set_title("UI-{0} ({1})".format(UI[i], userData[i][0]["taskOrder"])+ p)
         ax.set_ylim(0, 9)
-        print("userId: {0}, UI: {1}| {2}".format(userId, UI[i], test))
+        # print("userId: {0}, UI: {1}| {2}".format(userId, UI[i], test))
         # ax.set_xlabel("Warning")
         # ax.set_ylabel("Pupil Size Diff [mm]")
     fig.supxlabel("Warning", x=0.5, y=0.01)
@@ -836,6 +837,83 @@ def box_plot(data, title, xlabel, ylabel, subtaskData, xticklabel, ylim, figsize
         plt.show()
     plt.close()
 
+# group plot *****************************
+
+def group_time_collision(figsize=FIGSIZE, save=SAVE, pdf=False):
+    if pdf:
+        pdf_path = PPATH.format("group_time_collision")
+        pdf = PdfPages(pdf_path)
+    
+    collision = [[[] for _ in range(4) ] for _ in range(4)]
+    time = [[[] for _ in range(4) ] for _ in range(4)]
+
+    for userData in all:
+        for uiId in range(4):
+            data = userData[uiId]
+            c = [list() for _ in range(4)]
+            t = [list() for _ in range(4)]
+            for sub in data:
+                if not sub["collision_flag"]:
+                    c[0].append(sub["taskCollision"])
+                    t[0].append(sub["taskTime"])
+                elif ROBOT_NUM[sub["state"]] == 1:
+                    c[1].append(sub["taskCollision"])
+                    t[1].append(sub["taskTime"])
+                elif ROBOT_NUM[sub["state"]] == 2:
+                    c[2].append(sub["taskCollision"])
+                    t[2].append(sub["taskTime"])
+                else:
+                    c[3].append(sub["taskCollision"])
+                    t[3].append(sub["taskTime"])
+
+            for j in range(4):
+                collision[j][uiId].append(c[j])
+                time[j][uiId].append(t[j])
+
+    markers = [(m, c) for m, c in itertools.product(["o", "s", "^", "D", "x"], ["blue", "orange", "green", "red", "purple"])]
+    for i in range(4):
+        fig, axs = plt.subplots(nrows=2, ncols=2, figsize=figsize)
+        fig.subplots_adjust(hspace=0.3, left=0.06, right=0.98, top=0.9, wspace=0.11, bottom=0.08)
+        fig.suptitle("Group Time & Collision Count: Robot Num {0}".format(i))
+
+        axs = axs.flatten()
+        for j, ax in enumerate(axs):
+            t = [ d for user in time[i][j] for d in user ]
+            c = [ d for user in collision[i][j] for d in user ]
+            corr = get_corr(t, c, axis=1)[0]
+            ax.set_title("UI-{0}: {1:.2f}".format(UI[j], corr))
+            for mc, t, c in zip(markers, time[i][j], collision[i][j]):
+                ax.scatter(t, c, marker=mc[0], color=mc[1], s=10, alpha=0.7)
+                print(mc)
+
+            ax.set_xlim(-10, 130)
+            ax.set_ylim(-1, 13)
+            ax.grid(True)
+
+        fig.supxlabel("Task Time [s]", x=0.5, y=0.01)
+        fig.supylabel("Collision Count", x=0.01, y=0.5)
+
+        if save:
+            os.makedirs(f"pic/{save}", exist_ok=True)
+            plt.savefig(PATH.format(save, 0, 9), dpi=DPI)
+        elif pdf:
+            pdf.savefig(fig)
+        else:
+            plt.show()
+    
+        plt.close()
+    
+    if pdf:
+        pdf.close()
+        print("Saved PDF: {0}".format(pdf_path))
+
+# tool functions *****************************
+
+def get_max_min(attr):
+    max_val = max([max([max([data[attr] if not isinstance(data[attr], np.ndarray) else max(data[attr]) for data in uidata ]) for uidata in userData]) for userData in all])
+    min_val = min([min([min([data[attr] if not isinstance(data[attr], np.ndarray) else min(data[attr]) for data in uidata ]) for uidata in userData]) for userData in all])
+    print("{0} | Max: {1}, Min: {2}".format(attr, max_val, min_val))
+
 if __name__ == "__main__":
     try:
         all = load_all()
@@ -867,6 +945,8 @@ if __name__ == "__main__":
         # box_warning_pupil_d(3, 0)
         # box_sum_warning_pupil_d(3, 0)
         # map_func(box_sum_warning_pupil_d, uiIdRange=range(0, 1))
+        # get_max_min("taskTime")
+        group_time_collision(pdf=True)
 
         # save_pdf(pos_xz_diff_n, args=dict(n=60))
         # save_pdf(pos_xz)
@@ -890,7 +970,7 @@ if __name__ == "__main__":
         # save_pdf(scatter_pupil_d_robot_distance, args=dict(n=60))
         # save_pdf(scatter_warning_pupil_d, args=dict(n=0))
         # save_pdf(box_warning_pupil_d, uiIdRange=range(3, 4), name="_NO")
-        save_pdf(box_sum_warning_pupil_d, uiIdRange=range(1), name="_0-1")
+        # save_pdf(box_sum_warning_pupil_d, uiIdRange=range(1), name="_0-1")
 
         pass
     except Exception as e:
