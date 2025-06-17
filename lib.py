@@ -8,6 +8,7 @@ import pickle
 from scipy.spatial.transform import Rotation as R
 from scipy.stats import mode, spearmanr, shapiro, ttest_rel, wilcoxon, normaltest, ttest_ind, mannwhitneyu
 import warnings
+import pandas as pd
 warnings.filterwarnings("error", category=UserWarning)
 warnings.filterwarnings("error", category=RuntimeWarning)
 
@@ -27,6 +28,7 @@ FROBOT = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_robot.csv")
 FINFO = os.path.join("data", "{0:02d}", "{0:02d}_{1:1d}_taskinfo.json")
 FSUBJECT = os.path.join("data", "subject.csv")
 FSUBJECT_ATTR = os.path.join("data", "subject_attr.csv")
+FSUBJECT_RANK = os.path.join("data", "subject_ranking.csv")
 BDATA = os.path.join("bdata", "{0:02d}", "{0:02d}_{1:1d}.pkl")
 BDATA_SUBTASK = os.path.join("bdata", "{0:02d}", "{0:02d}_{1:1d}_subtask.pkl")
 
@@ -368,6 +370,8 @@ def all_data_concat(new=False):
 def new(new=False):
     all_data_concat(new)
     convert_subject(True)
+    convert_subject_attr(True)
+    convert_subject_ranking(True)
     print("all data converted")
 
 def convert_subject_attr(new=False):
@@ -393,23 +397,114 @@ def convert_subject_attr(new=False):
             else:
                 data["gender"].append("o")
         
-            data["exercise"].append(row[9])
-            data["duration"].append(row[10])
-            data["mobile"].append(row[11])
-            data["console"].append(row[12])
-            data["vr"].append(row[13])
-            data["genre"].append(row[14])
+            if row[9] == "0日":
+                data["exercise"].append(0)
+            elif row[9] == "1～3日":
+                data["exercise"].append(1)
+            elif row[9] == "4～6日":
+                data["exercise"].append(2)
+            else:
+                data["exercise"].append(3)
+            
+            if row[10] == "0分":
+                data["duration"].append(0)
+            elif row[10] == "1分～59分":
+                data["duration"].append(1)
+            elif row[10] == "60分～119分":
+                data["duration"].append(2)
+            else:
+                data["duration"].append(3)
+                
+            
+            if row[11] == "0回":
+                data["mobile"].append(0)
+            elif row[11] == "1-9回":
+                data["mobile"].append(1)
+            else:
+                data["mobile"].append(2)
+            
+            if row[12] == "0回":
+                data["console"].append(0)
+            elif row[12] == "1-9回":
+                data["console"].append(1)
+            else:
+                data["console"].append(2)
+
+            if row[13] == "0回":
+                data["vr"].append(0)
+            elif row[13] == "1-9回":
+                data["vr"].append(1)
+            else:
+                data["vr"].append(2)
+            
+            if row[14] == "スマホ・タブレットやNintendo Switch（テーブル・携帯モード）などの小型画面ゲーム機":
+                data["genre"].append("mobile")
+            elif row[14] == "パソコン・コンシューマーゲーム機（Nintendo Switch TVモード / PlayStation など）などの大型画面ゲーム機":
+                data["genre"].append("console")
+            elif row[14] == "VRゲーム機":
+                data["genre"].append("vr")
+            else:
+                data["genre"].append("none")
+            
             data["sleep"].append(float(row[15]))
             data["waking"].append(float(row[16]))
             data["health"].append(int(row[17]))
-            data["correction"].append(row[18])
+
+            data["correction"].append(True if row[18] == "はい" else False)
+
             data["vision"].append(row[19])
             data["refraction"].append(row[20])
 
     os.makedirs("bdata", exist_ok=True)
     with open(os.path.join("bdata", "subject_attr.pkl"), "wb") as f:
-        pickle.dump(data, f)
+        pickle.dump(pd.DataFrame(data), f)
         print("subject_attr.pkl saved")
+
+def convert_subject_ranking(new=False):
+    if not new and os.path.exists(os.path.join("bdata", "subject_ranking.pkl")):
+        print("subject_ranking.pkl already exists")
+        return
+    
+    data = defaultdict(list)
+    
+    with open(FSUBJECT_RANK, "r", encoding="utf-8-sig") as f:
+        reader = csv.reader(f)
+        next(reader) # a, b, c, d, e, userId, easy, annoy, useful, trust, notice, distance, direction, safe, vr, avoid, comment
+
+        for row in reader:
+            userId = int(row[5])
+            data["userId"].append(userId)
+            data["easy"].append(toList(row[6]))
+            data["annoy"].append(toList(row[7]))
+            data["useful"].append(toList(row[8]))
+            data["trust"].append(toList(row[9]))
+            data["notice"].append(toList(row[10]))
+            data["distance"].append(toList(row[11]))
+            data["direction"].append(toList(row[12]))
+            data["safe"].append(toList(row[13]))
+            data["vr"].append(toList(row[14]))
+            data["avoid"].append(toList(row[15]))
+            data["comment"].append(row[16])
+
+    os.makedirs("bdata", exist_ok=True)
+    with open(os.path.join("bdata", "subject_ranking.pkl"), "wb") as f:
+        pickle.dump(pd.DataFrame(data), f)
+        print("subject_ranking.pkl saved")
+
+def toList(txt):
+    rank = txt.split(";")
+    l = []
+    for r in rank:
+        if r == "矢印＋警告音":
+            l.append(0)
+        elif r == "矢印のみ":
+            l.append(1)
+        elif r == "警告音のみ":
+            l.append(2)
+        else:
+            l.append(3)
+    
+    return l
 
 # data load ********************
 def load_binary(userId, uiId):
@@ -466,6 +561,15 @@ def load_subject_attr(): # load subjective attribute data
     filename = os.path.join("bdata", "subject_attr.pkl")
     if not os.path.exists(filename):
         convert_subject_attr()
+    with open(filename, "rb") as f:
+        data = pickle.load(f)
+    return data
+
+def load_subject_ranking(): # load subjective ranking data
+    filename = os.path.join("bdata", "subject_ranking.pkl")
+    if not os.path.exists(filename):
+        convert_subject_ranking()
+    
     with open(filename, "rb") as f:
         data = pickle.load(f)
     return data

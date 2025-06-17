@@ -870,7 +870,9 @@ def group_time_collision(figsize=FIGSIZE, save=SAVE, pdf=False):
                 collision[j][uiId].append(c[j])
                 time[j][uiId].append(t[j])
 
-    markers = [(m, c) for m, c in itertools.product(["o", "s", "^", "D", "x"], ["blue", "orange", "green", "red", "purple"])]
+    markers1 = [(m, c) for m, c in itertools.product(["o", "s", "^", "D", "x"], ["#87CEEB", "#4169E1", "#191970"])]
+    markers2 = [(m, c) for m, c in itertools.product(["o", "s", "^", "D", "x"], ["#FFB6C1", "#FF69B4", "#C71585"])]
+
     for i in range(4):
         fig, axs = plt.subplots(nrows=2, ncols=2, figsize=figsize)
         fig.subplots_adjust(hspace=0.3, left=0.06, right=0.98, top=0.9, wspace=0.11, bottom=0.08)
@@ -882,9 +884,14 @@ def group_time_collision(figsize=FIGSIZE, save=SAVE, pdf=False):
             c = [ d for user in collision[i][j] for d in user ]
             corr = get_corr(t, c, axis=1)[0]
             ax.set_title("UI-{0}: {1:.2f}".format(UI[j], corr))
-            for mc, t, c in zip(markers, time[i][j], collision[i][j]):
-                ax.scatter(t, c, marker=mc[0], color=mc[1], s=10, alpha=0.7)
-                print(mc)
+            mi1, mi2 = 0, 0
+            for userId, (t, c) in enumerate(zip(time[i][j], collision[i][j])):
+                if attr["gender"][userId] == "m":
+                    ax.scatter(t, c, marker=markers1[mi1][0], color=markers1[mi1][1], s=20, alpha=0.7)
+                    mi1 += 1
+                else:
+                    ax.scatter(t, c, marker=markers2[mi2][0], color=markers2[mi2][1], s=20, alpha=0.7)
+                    mi2 += 1
 
             ax.set_xlim(-10, 130)
             ax.set_ylim(-1, 13)
@@ -917,6 +924,7 @@ def get_max_min(attr):
 if __name__ == "__main__":
     try:
         all = load_all()
+        attr = load_subject_attr()
         # total, average = calculate_change(i, j, "pos")
         # print(i, j, "Total change: {0}, Average change: {1}".format(total, average))
         # calculate_change(i, j, "qua")
