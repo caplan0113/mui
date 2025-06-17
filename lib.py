@@ -140,6 +140,46 @@ subjectiveData = {
 }
 """
 
+"""
+subjectiveAttrData = {
+    "userId": int, # user id
+    "faculty": str, # faculty
+    "age": int, # age
+    "gender": str, # gender (m, f, o)
+    "exercise": int, # exercise frequency (0-3)
+    "duration": int, # exercise duration (0-3)
+    "mobile": int, # mobile game frequency (0-2)
+    "console": int, # console game frequency (0-2)
+    "vr": int, # vr game frequency (0-2)
+    "genre": str, # game genre (mobile, console, vr, none)
+    "sleep": float, # sleep duration
+    "waking": float, # waking time
+    "health": int, # health status (1-5)
+    "correction": bool, # correction (True/False)
+    "vision": str, # vision
+    "refraction": str, # refraction
+}: DataFrame.key
+"""
+
+"""
+subjectiveRankingData = {
+    "userId": int, # user id
+    "easy": list(int), # easy to use ranking (0-3)
+    "annoy": list(int), # annoying ranking (0-3)
+    "useful": list(int), # useful ranking (0-3)
+    "trust": list(int), # trust ranking (0-3)
+    "notice": list(int), # notice robot ranking (0-3)
+    "distance": list(int), # distance ranking (0-3)
+    "direction": list(int), # direction ranking (0-3)
+    "safe": list(int), # safe ranking (0-3)
+    "vr": list(int), # vr ranking (0-3)
+    "avoid": list(int), # avoid robot ranking (0-3)
+    "comment": str # comment
+}: DataFrame.key
+"""
+
+
+
 # csv data to binary ********************
 def convert_binary(userId, uiId):
     data = defaultdict(list)
@@ -690,7 +730,7 @@ def ND_test(data):
     else:
         return True  # データは正規分布に従う
 
-def samples_test_ind(data1, data2):
+def samples_test_rel(data1, data2):
     alpha = 0.05
 
     try:
@@ -730,3 +770,18 @@ def samples_test_ind(data1, data2):
 
     return statistic, p_value < alpha
 
+def samples_test_rel_list(datas):
+    results = []
+    for i in range(len(datas)):
+        for j in range(i + 1, len(datas)):
+            result = samples_test_rel(datas[i], datas[j])
+            results.append(result[1])
+    return results
+
+def samples_test_ind_list(datas):
+    results = []
+    for i in range(len(datas)):
+        for j in range(i + 1, len(datas)):
+            result = samples_test_ind(datas[i], datas[j])
+            results.append(result[1])
+    return results
