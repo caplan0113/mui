@@ -826,9 +826,12 @@ def box_collision_robot_num(figsize=FIGSIZE, save=SAVE, pdf=None):
                 else:
                     data[0][uiId].append(sub["taskCollision"])
     
-    box_plot_2x2(data, "Box Plot of Collision Count by Robot Number", "UI", "Collision Count", xticklabel=UI, ylim=(-1, 13), figsize=FIGSIZE, save=save, pdf=pdf)
-    
-    pdf.close() if pdf else None
+    titles = ["No Collision", "Robot 1", "Robot 2", "Robot 3"]
+    box_plot_2x2(data, "Box Plot of Collision Count by Robot Number", "UI", "Collision Count", xticklabel=UI, ylim=(-1, 13), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf)
+
+    if pdf:
+        pdf.close()
+        print("Saved PDF: {0}".format(pdf_path))
 
 def box_time_robot_num(figsize=FIGSIZE, save=SAVE, pdf=None):
     if pdf:
@@ -846,11 +849,106 @@ def box_time_robot_num(figsize=FIGSIZE, save=SAVE, pdf=None):
                 else:
                     data[0][uiId].append(sub["taskTime"])
     
-    box_plot_2x2(data, "Box Plot of Task Time by Robot Number", "UI", "Task Time [s]", xticklabel=UI, ylim=(-10, 130), figsize=FIGSIZE, save=save, pdf=pdf)
-    
-    pdf.close() if pdf else None
+    titles = ["No Collision", "Robot 1", "Robot 2", "Robot 3"]
+    box_plot_2x2(data, "Box Plot of Task Time by Robot Number", "UI", "Task Time [s]", xticklabel=UI, ylim=(-10, 130), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf)
 
-def box_plot_2x2(data, title, xlabel, ylabel, xticklabel, ylim, figsize=FIGSIZE, save=SAVE, pdf=None):
+    if pdf:
+        pdf.close()
+        print("Saved PDF: {0}".format(pdf_path))
+
+def box_mistake_robot_num(figsize=FIGSIZE, save=SAVE, pdf=None):
+    if pdf:
+        pdf_path = PPATH.format("box_mistake_robot_num")
+        pdf = PdfPages(pdf_path)
+    
+    data = [[[] for _ in range(4)] for _ in range(4)]  # 4 robot numbers, 4 ui states
+
+    for userData in all:
+        for uiId in range(4):
+            subtaskData = userData[uiId]
+            for sub in subtaskData:
+                if sub["collision_flag"]:
+                    data[ROBOT_NUM[sub["state"]]][uiId].append(sub["taskMistake"])
+                else:
+                    data[0][uiId].append(sub["taskMistake"])
+    
+    titles = ["No Collision", "Robot 1", "Robot 2", "Robot 3"]
+    box_plot_2x2(data, "Box Plot of Mistake Count by Robot Number", "UI", "Mistake Count", xticklabel=UI, ylim=(-0.5, 2.5), titles=titles, figsize=FIGSIZE, save=save, pdf=pdf)
+
+    if pdf:
+        pdf.close()
+        print("Saved PDF: {0}".format(pdf_path))
+
+def box_collision_ui(figsize=FIGSIZE, save=SAVE, pdf=None):
+    if pdf:
+        pdf_path = PPATH.format("box_collision_ui")
+        pdf = PdfPages(pdf_path)
+    
+    data = [[[] for _ in range(4)] for _ in range(4)]  # 4 robot numbers, 4 ui states
+
+    for userData in all:
+        for uiId in range(4):
+            subtaskData = userData[uiId]
+            for sub in subtaskData:
+                if sub["collision_flag"]:
+                    data[uiId][ROBOT_NUM[sub["state"]]].append(sub["taskCollision"])
+                else:
+                    data[uiId][0].append(sub["taskCollision"])
+    
+    titles = UI
+    box_plot_2x2(data, "Box Plot of Collision Count by UI", "Robot Num", "Collision Count", xticklabel=range(4), ylim=(-1, 13), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=False, tlabel=list(range(4)))
+
+    if pdf:
+        pdf.close()
+        print("Saved PDF: {0}".format(pdf_path))
+
+def box_time_ui(figsize=FIGSIZE, save=SAVE, pdf=None):
+    if pdf:
+        pdf_path = PPATH.format("box_time_ui")
+        pdf = PdfPages(pdf_path)
+    
+    data = [[[] for _ in range(4)] for _ in range(4)]  # 4 robot numbers, 4 ui states
+
+    for userData in all:
+        for uiId in range(4):
+            subtaskData = userData[uiId]
+            for sub in subtaskData:
+                if sub["collision_flag"]:
+                    data[uiId][ROBOT_NUM[sub["state"]]].append(sub["taskTime"])
+                else:
+                    data[uiId][0].append(sub["taskTime"])
+    
+    titles = UI
+    box_plot_2x2(data, "Box Plot of Task Time by UI", "Robot Num", "Task Time [s]", xticklabel=range(4), ylim=(-10, 130), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=False, tlabel=list(range(4)))
+
+    if pdf:
+        pdf.close()
+        print("Saved PDF: {0}".format(pdf_path))
+
+def box_mistake_ui(figsize=FIGSIZE, save=SAVE, pdf=None):
+    if pdf:
+        pdf_path = PPATH.format("box_mistake_ui")
+        pdf = PdfPages(pdf_path)
+    
+    data = [[[] for _ in range(4)] for _ in range(4)]  # 4 robot numbers, 4 ui states
+
+    for userData in all:
+        for uiId in range(4):
+            subtaskData = userData[uiId]
+            for sub in subtaskData:
+                if sub["collision_flag"]:
+                    data[uiId][ROBOT_NUM[sub["state"]]].append(sub["taskMistake"])
+                else:
+                    data[uiId][0].append(sub["taskMistake"])
+    
+    titles = UI
+    box_plot_2x2(data, "Box Plot of Mistake Count by UI", "Robot Num", "Mistake Count", xticklabel=range(4), ylim=(-0.5, 2.5), titles=titles, figsize=FIGSIZE, save=save, pdf=pdf, rel=False, tlabel=list(range(4)))
+
+    if pdf:
+        pdf.close()
+        print("Saved PDF: {0}".format(pdf_path))
+
+def box_plot_2x2(data, title, xlabel, ylabel, xticklabel, ylim, titles, figsize=FIGSIZE, save=SAVE, pdf=None, rel=True, tlabel=UI):
     fig, axs = plt.subplots(nrows=2, ncols=2, figsize=figsize)
     fig.suptitle(title)
     fig.subplots_adjust(hspace=0.3, left=0.06, right=0.98, top=0.9, wspace=0.11, bottom=0.08)
@@ -859,17 +957,24 @@ def box_plot_2x2(data, title, xlabel, ylabel, xticklabel, ylim, figsize=FIGSIZE,
 
     for i, (ax, d) in enumerate(zip(axs, data)):
         ax.boxplot(d, patch_artist=True, notch=True, showmeans=True, meanline=True, tick_labels=xticklabel)
-        ax.set_title("Robot Num: {0}".format(i))
+        ax.set_title(titles[i])
         ax.set_ylim(*ylim)
         # ax.set_xlabel(xlabel)
         # ax.set_ylabel(ylabel)
-        res = samples_test_ind_list(d)
+        if rel: 
+            res = samples_test_rel_list(d)
+        else:
+            res = samples_test_ind_list(d)
         idx = 0
+        txt = ""
         for u in range(4):
             for v in range(u+1, 4):
-                print("Robot Num {0} | {1} vs {2}: {3}".format(i, UI[u], UI[v], res[idx]))
+                if res[idx]:
+                    txt += "{0}-{1}, ".format(tlabel[u], tlabel[v])
 
             idx += 1
+        if txt:
+            ax.set_xlabel("*: "+txt)
 
     fig.supxlabel(xlabel, x=0.5, y=0.01)
     fig.supylabel(ylabel, x=0.01, y=0.5)
@@ -998,6 +1103,8 @@ def get_max_min(attr):
     min_val = min([min([min([data[attr] if not isinstance(data[attr], np.ndarray) else min(data[attr]) for data in uidata ]) for uidata in userData]) for userData in all])
     print("{0} | Max: {1}, Min: {2}".format(attr, max_val, min_val))
 
+
+
 if __name__ == "__main__":
     try:
         all = load_all()
@@ -1030,7 +1137,7 @@ if __name__ == "__main__":
         # box_warning_pupil_d(3, 0)
         # box_sum_warning_pupil_d(3, 0)
         # map_func(box_sum_warning_pupil_d, uiIdRange=range(0, 1))
-        # get_max_min("taskTime")
+        # get_max_min("taskMistake")
 
         # save_pdf(pos_xz_diff_n, args=dict(n=60))
         # save_pdf(pos_xz)
@@ -1056,8 +1163,12 @@ if __name__ == "__main__":
         # save_pdf(box_warning_pupil_d, uiIdRange=range(3, 4), name="_NO")
         # save_pdf(box_sum_warning_pupil_d, uiIdRange=range(1), name="_0-1")
         # group_time_collision(pdf=True)
-        box_collision_robot_num(pdf=True)
-        box_time_robot_num(pdf=True)
+        # box_collision_robot_num(pdf=True)
+        # box_time_robot_num(pdf=True)
+        # box_mistake_robot_num(pdf=True)
+        box_collision_ui(pdf=True)
+        box_time_ui(pdf=True)
+        box_mistake_ui(pdf=True)
 
         pass
     except Exception as e:
