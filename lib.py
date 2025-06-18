@@ -163,19 +163,19 @@ subjectiveAttrData = {
 
 """
 subjectiveRankingData = {
-    "userId": int, # user id
-    "easy": list(int), # easy to use ranking (0-3)
-    "annoy": list(int), # annoying ranking (0-3)
-    "useful": list(int), # useful ranking (0-3)
-    "trust": list(int), # trust ranking (0-3)
-    "notice": list(int), # notice robot ranking (0-3)
-    "distance": list(int), # distance ranking (0-3)
-    "direction": list(int), # direction ranking (0-3)
-    "safe": list(int), # safe ranking (0-3)
-    "vr": list(int), # vr ranking (0-3)
-    "avoid": list(int), # avoid robot ranking (0-3)
-    "comment": str # comment
-}: DataFrame.key
+    "userId": list(int), # user id
+    "easy": numpy.array(int) | shape(userNum, 4), # easy to use ranking (1-4)
+    "annoy": numpy.array(int) | shape(userNum, 4), # annoying ranking (1-4)
+    "useful": numpy.array(int) | shape(userNum, 4), # useful ranking (1-4)
+    "trust": numpy.array(int) | shape(userNum, 4), # trust ranking (1-4)
+    "notice": numpy.array(int) | shape(userNum, 4), # notice robot ranking (1-4)
+    "distance": numpy.array(int) | shape(userNum, 4), # distance ranking (1-4)
+    "direction": numpy.array(int) | shape(userNum, 4), # direction ranking (1-4)
+    "safe": numpy.array(int) | shape(userNum, 4), # safe ranking (1-4)
+    "vr": numpy.array(int) | shape(userNum, 4), # vr ranking (1-4)
+    "avoid": numpy.array(int) | shape(userNum, 4), # avoid robot ranking (1-4)
+    "comment": list(str) # comment
+}
 """
 
 
@@ -526,23 +526,26 @@ def convert_subject_ranking(new=False):
             data["avoid"].append(toList(row[15]))
             data["comment"].append(row[16])
 
+    for key in data.keys():
+        data[key] = np.array(data[key])
+
     os.makedirs("bdata", exist_ok=True)
     with open(os.path.join("bdata", "subject_ranking.pkl"), "wb") as f:
-        pickle.dump(pd.DataFrame(data), f)
+        pickle.dump(data, f)
         print("subject_ranking.pkl saved")
 
 def toList(txt):
     rank = txt.split(";")
-    l = []
-    for r in rank:
+    l = [0]*4
+    for i, r in zip(range(1, 5), rank):
         if r == "矢印＋警告音":
-            l.append(0)
+            l[0] = i
         elif r == "矢印のみ":
-            l.append(1)
+            l[1] = i
         elif r == "警告音のみ":
-            l.append(2)
+            l[2] = i
         else:
-            l.append(3)
+            l[3] = i
     
     return l
 
@@ -730,11 +733,11 @@ def ND_test(data):
     else:
         return True  # データは正規分布に従う
 
-def samples_test_rel(data1, data2):
+def samples_test_rel(data1, data2, n_parametric=False):
     alpha = 0.05
 
     try:
-        if ND_test(data1) and ND_test(data2):
+        if ND_test(data1) and ND_test(data2) and not n_parametric:
             statistic, p_value = ttest_rel(data1, data2)
         else:
             statistic, p_value = wilcoxon(data1, data2)
@@ -750,11 +753,11 @@ def samples_test_rel(data1, data2):
 
     return statistic, p_value < alpha
 
-def samples_test_ind(data1, data2):
+def samples_test_ind(data1, data2, n_parametric=False):
     alpha = 0.05
 
     try:
-        if ND_test(data1) and ND_test(data2):
+        if ND_test(data1) and ND_test(data2) and not n_parametric:
             statistic, p_value = ttest_ind(data1, data2)
         else:
             statistic, p_value = mannwhitneyu(data1, data2)
