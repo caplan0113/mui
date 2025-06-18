@@ -12,7 +12,7 @@ import pandas as pd
 warnings.filterwarnings("error", category=UserWarning)
 warnings.filterwarnings("error", category=RuntimeWarning)
 
-N = 13 + 1
+N = 14 + 1
 TASK_ORDER = [
     [4, 3, 1, 2], [3, 1, 4, 2], [2, 4, 1, 3], [2, 4, 3, 1], [3, 4, 2, 1], 
     [4, 1, 3, 2], [1, 4, 2, 3], [4, 3, 2, 1], [1, 3, 4, 2], [4, 2, 1, 3],
@@ -751,7 +751,7 @@ def samples_test_rel(data1, data2, n_parametric=False):
         print(f"Warning in samples_test_ind: {e}")
         statistic, p_value = 0, 1
 
-    return statistic, p_value < alpha
+    return statistic, p_value, p_value < alpha
 
 def samples_test_ind(data1, data2, n_parametric=False):
     alpha = 0.05
@@ -771,20 +771,20 @@ def samples_test_ind(data1, data2, n_parametric=False):
         print(f"Warning in samples_test_ind: {e}")
         statistic, p_value = 0, 1
 
-    return statistic, p_value < alpha
+    return statistic, p_value, p_value < alpha
 
-def samples_test_rel_list(datas):
-    results = []
+def samples_test_rel_list(datas, n_parametric=False):
+    results = [[False]*(len(datas)) for _ in range(len(datas))]
     for i in range(len(datas)):
         for j in range(i + 1, len(datas)):
-            result = samples_test_rel(datas[i], datas[j])
-            results.append(result[1])
+            result = samples_test_rel(datas[i], datas[j], n_parametric=n_parametric)
+            results[i][j] = result[2]
     return results
 
-def samples_test_ind_list(datas):
-    results = []
+def samples_test_ind_list(datas, n_parametric=False):
+    results = [[False]*(len(datas)) for _ in range(len(datas))]
     for i in range(len(datas)):
         for j in range(i + 1, len(datas)):
-            result = samples_test_ind(datas[i], datas[j])
-            results.append(result[1])
+            result = samples_test_ind(datas[i], datas[j], n_parametric=n_parametric)
+            results[i][j] = result[2]
     return results

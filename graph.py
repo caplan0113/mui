@@ -770,7 +770,7 @@ def box_sum_warning_pupil_d(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
     
     data = []
     for subtaskData in userData:
-        subData = [[] for _ in range(2)]  # Create a list for each warning level
+        subData = [[] for _ in range(4)]  # Create a list for each warning level
         for sub in subtaskData:
             for i in range(4):
                 mask = sub["warning"] == i
@@ -778,24 +778,27 @@ def box_sum_warning_pupil_d(userId, uiId, figsize=FIGSIZE, save=SAVE, pdf=None):
                     arr = sub["lg_pupil_d"][mask]
                     arr = arr[arr != 0]  # Exclude 0 values
                     arr = arr[arr != -1]
-                    subData[int(i>=1)].extend(arr)  # Sum of pupil size differences
+                    subData[i].extend(arr)  # Sum of pupil size differences
         data.append(subData)
 
     fig, axs = plt.subplots(nrows=2, ncols=2, figsize=figsize)
     fig.subplots_adjust(hspace=0.3, left=0.06, right=0.98, top=0.9, wspace=0.11, bottom=0.08)
     fig.suptitle("Sum of Pupil Size Diff & Warning: User-{0:02d}".format(userId))
     axs = axs.flatten()
-    xticklabel = range(2)
+    xticklabel = range(4)
 
     for i, (ax, d) in enumerate(zip(axs, data)):
         ax.boxplot(d, patch_artist=True, notch=True, showmeans=True, meanline=True, tick_labels=xticklabel)
-        test = samples_test_ind(d[0], d[1])[1]
-        p = " *" if test else ""
-        ax.set_title("UI-{0} ({1})".format(UI[i], userData[i][0]["taskOrder"])+ p)
+        test = samples_test_ind_list(d)
+        txt = ""
+        for v in range(4):
+            for u in range(v+1, 4):
+                if test[v][u]:
+                    txt += "{0}-{1}, ".format(v, u)
+        if txt:
+            ax.set_xlabel("*: " + txt[:-2])
+        ax.set_title("UI-{0} ({1})".format(UI[i], userData[i][0]["taskOrder"]))
         ax.set_ylim(0, 9)
-        # print("userId: {0}, UI: {1}| {2}".format(userId, UI[i], test))
-        # ax.set_xlabel("Warning")
-        # ax.set_ylabel("Pupil Size Diff [mm]")
     fig.supxlabel("Warning", x=0.5, y=0.01)
     fig.supylabel("Pupil Size Diff [mm]", x=0.01, y=0.5)
 
@@ -948,6 +951,39 @@ def box_mistake_ui(figsize=FIGSIZE, save=SAVE, pdf=None):
         pdf.close()
         print("Saved PDF: {0}".format(pdf_path))
 
+def box_pupil_d_robot_num(figsize=FIGSIZE, save=SAVE, pdf=None):
+    if pdf:
+        pdf_path = PPATH.format("box_pupil_d_robot_num")
+        pdf = PdfPages(pdf_path)
+    
+    data = [[[] for _ in range(4)] for _ in range(4)]  # 4 robot numbers, 4 ui states
+
+    for userData in all:
+        if userData[0][0]["userId"] in [2, 4, 14]:
+            continue
+        for uiId in range(4):
+            subtaskData = userData[uiId]
+            for sub in subtaskData:
+                if sub["collision_flag"]:
+                    arr = sub["lg_pupil_d"]
+                    arr = arr[arr != 0]  # Exclude 0 values
+                    arr = arr[arr != -1]  # Exclude -1 values
+                    if len(arr) != 0:
+                        data[ROBOT_NUM[sub["state"]]][uiId].extend(arr)
+                else:
+                    arr = sub["lg_pupil_d"]
+                    arr = arr[arr != 0]  # Exclude 0 values
+                    arr = arr[arr != -1]  # Exclude -1 values
+                    if len(arr) != 0:
+                        data[0][uiId].extend(arr)
+
+    titles = ["No Collision", "Robot 1", "Robot 2", "Robot 3"]
+    box_plot_2x2(data, "Box Plot of Pupil Size Diff by Robot Number", "UI", "Pupil Size Diff [mm]", xticklabel=UI, ylim=(0, 9), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=False, tlabel=UI)
+
+    if pdf:
+        pdf.close()
+        print("Saved PDF: {0}".format(pdf_path))
+
 def box_plot_2x2(data, title, xlabel, ylabel, xticklabel, ylim, titles, figsize=FIGSIZE, save=SAVE, pdf=None, rel=True, tlabel=UI):
     fig, axs = plt.subplots(nrows=2, ncols=2, figsize=figsize)
     fig.suptitle(title)
@@ -956,7 +992,7 @@ def box_plot_2x2(data, title, xlabel, ylabel, xticklabel, ylim, titles, figsize=
     axs = axs.flatten()
 
     for i, (ax, d) in enumerate(zip(axs, data)):
-        ax.boxplot(d, patch_artist=True, notch=True, showmeans=True, meanline=True, tick_labels=xticklabel)
+        ax.boxplot(d, patch_artist=True, notch=False, showmeans=True, meanline=True, tick_labels=xticklabel)
         ax.set_title(titles[i])
         ax.set_ylim(*ylim)
         # ax.set_xlabel(xlabel)
@@ -965,16 +1001,15 @@ def box_plot_2x2(data, title, xlabel, ylabel, xticklabel, ylim, titles, figsize=
             res = samples_test_rel_list(d)
         else:
             res = samples_test_ind_list(d)
-        idx = 0
+
         txt = ""
         for u in range(4):
             for v in range(u+1, 4):
-                if res[idx]:
+                if res[u][v]:
                     txt += "{0}-{1}, ".format(tlabel[u], tlabel[v])
 
-            idx += 1
         if txt:
-            ax.set_xlabel("*: "+txt)
+            ax.set_xlabel("*: "+txt[:-2])
 
     fig.supxlabel(xlabel, x=0.5, y=0.01)
     fig.supylabel(ylabel, x=0.01, y=0.5)
@@ -1161,14 +1196,15 @@ if __name__ == "__main__":
         # save_pdf(scatter_pupil_d_robot_distance, args=dict(n=60))
         # save_pdf(scatter_warning_pupil_d, args=dict(n=0))
         # save_pdf(box_warning_pupil_d, uiIdRange=range(3, 4), name="_NO")
-        # save_pdf(box_sum_warning_pupil_d, uiIdRange=range(1), name="_0-1")
+        # save_pdf(box_sum_warning_pupil_d, uiIdRange=range(1), name="")
         # group_time_collision(pdf=True)
         # box_collision_robot_num(pdf=True)
         # box_time_robot_num(pdf=True)
         # box_mistake_robot_num(pdf=True)
-        box_collision_ui(pdf=True)
-        box_time_ui(pdf=True)
-        box_mistake_ui(pdf=True)
+        # box_collision_ui(pdf=True)
+        # box_time_ui(pdf=True)
+        # box_mistake_ui(pdf=True)
+        box_pupil_d_robot_num(pdf=True)
 
         pass
     except Exception as e:
