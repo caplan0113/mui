@@ -1005,8 +1005,8 @@ def box_plot_2x2(data, title, xlabel, ylabel, xticklabel, ylim, titles, figsize=
         txt = ""
         for u in range(4):
             for v in range(u+1, 4):
-                if res[u][v]:
-                    txt += "{0}-{1}, ".format(tlabel[u], tlabel[v])
+                if res[u][v][0]:
+                    txt += "{0}-{1}({2:.2f}), ".format(tlabel[u], tlabel[v], res[u][v][1])
 
         if txt:
             ax.set_xlabel("*: "+txt[:-2])
@@ -1198,12 +1198,12 @@ if __name__ == "__main__":
         # save_pdf(box_warning_pupil_d, uiIdRange=range(3, 4), name="_NO")
         # save_pdf(box_sum_warning_pupil_d, uiIdRange=range(1), name="")
         # group_time_collision(pdf=True)
-        # box_collision_robot_num(pdf=True)
-        # box_time_robot_num(pdf=True)
-        # box_mistake_robot_num(pdf=True)
-        # box_collision_ui(pdf=True)
-        # box_time_ui(pdf=True)
-        # box_mistake_ui(pdf=True)
+        box_collision_robot_num(pdf=True)
+        box_time_robot_num(pdf=True)
+        box_mistake_robot_num(pdf=True)
+        box_collision_ui(pdf=True)
+        box_time_ui(pdf=True)
+        box_mistake_ui(pdf=True)
         box_pupil_d_robot_num(pdf=True)
 
         pass

@@ -738,47 +738,59 @@ def samples_test_rel(data1, data2, n_parametric=False):
 
     try:
         if ND_test(data1) and ND_test(data2) and not n_parametric:
+            print("parametric test")
             statistic, p_value = ttest_rel(data1, data2)
+            r = -2
         else:
             statistic, p_value = wilcoxon(data1, data2)
+            r = common_language_effect(data1, data2)
     except UserWarning as e:
         print(f"Warning in samples_test_ind: {e}")
         statistic, p_value = 0, 1
+        r = -1
     except RuntimeWarning as e:
         print(f"RuntimeWarning in samples_test_ind: {e}")
         statistic, p_value = 0, 1
+        r = -1
     except Warning as e:
         print(f"Warning in samples_test_ind: {e}")
         statistic, p_value = 0, 1
+        r = -1
 
-    return statistic, p_value, p_value < alpha
+    return statistic, p_value, p_value < alpha, r
 
 def samples_test_ind(data1, data2, n_parametric=False):
     alpha = 0.05
 
     try:
         if ND_test(data1) and ND_test(data2) and not n_parametric:
+            print("parametric test")
             statistic, p_value = ttest_ind(data1, data2)
+            r = -2
         else:
             statistic, p_value = mannwhitneyu(data1, data2)
+            r = common_language_effect(data1, data2)
     except UserWarning as e:
         print(f"Warning in samples_test_ind: {e}")
         statistic, p_value = 0, 1
+        r = -1
     except RuntimeWarning as e:
         print(f"RuntimeWarning in samples_test_ind: {e}")
         statistic, p_value = 0, 1
+        r = -1
     except Warning as e:
         print(f"Warning in samples_test_ind: {e}")
         statistic, p_value = 0, 1
+        r = -1
 
-    return statistic, p_value, p_value < alpha
+    return statistic, p_value, p_value < alpha, r
 
 def samples_test_rel_list(datas, n_parametric=False):
     results = [[False]*(len(datas)) for _ in range(len(datas))]
     for i in range(len(datas)):
         for j in range(i + 1, len(datas)):
             result = samples_test_rel(datas[i], datas[j], n_parametric=n_parametric)
-            results[i][j] = result[2]
+            results[i][j] = (result[2], result[3])
     return results
 
 def samples_test_ind_list(datas, n_parametric=False):
@@ -786,5 +798,50 @@ def samples_test_ind_list(datas, n_parametric=False):
     for i in range(len(datas)):
         for j in range(i + 1, len(datas)):
             result = samples_test_ind(datas[i], datas[j], n_parametric=n_parametric)
-            results[i][j] = result[2]
+            results[i][j] = (result[2], result[3])
     return results
+
+def cliff_delta(data1, data2):
+    """
+    Cliff's Deltaを計算する関数
+    data1, data2: 比較する2つのデータセット（numpy array）
+    """
+    if len(data1) == 0 or len(data2) == 0:
+        return np.nan
+    
+    n1 = len(data1)
+    n2 = len(data2)
+    
+    count = 0
+    for x in data1:
+        for y in data2:
+            if x > y:
+                count += 1
+            elif x < y:
+                count -= 1
+    
+    delta = count / (n1 * n2)
+    return delta
+
+def common_language_effect(data1, data2):
+    """
+    Common Language Effect (CLE)を計算する関数
+    data1, data2: 比較する2つのデータセット（numpy array）
+    """
+    if len(data1) == 0 or len(data2) == 0:
+        return np.nan
+    
+    n1 = len(data1)
+    n2 = len(data2)
+    
+    count = 0
+    for x in data1:
+        for y in data2:
+            if x > y:
+                count += 1
+            elif x == y:
+                count += 0.5
+    
+    cle = count / (n1 * n2)
+    return cle
+
