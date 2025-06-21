@@ -809,17 +809,23 @@ def cliff_delta(data1, data2):
     if len(data1) == 0 or len(data2) == 0:
         return np.nan
     
+    if isinstance(data1, list):
+        data1 = np.array(data1)
+    if isinstance(data2, list):
+        data2 = np.array(data2)
+    
     n1 = len(data1)
     n2 = len(data2)
     
-    count = 0
-    for x in data1:
-        for y in data2:
-            if x > y:
-                count += 1
-            elif x < y:
-                count -= 1
-    
+    # count = 0
+    # for x in data1:
+    #     for y in data2:
+    #         if x > y:
+    #             count += 1
+    #         elif x < y:
+    #             count -= 1
+    count = np.sum(data1[:, None] > data2) - np.sum(data1[:, None] < data2)
+
     delta = count / (n1 * n2)
     return delta
 
@@ -831,17 +837,24 @@ def common_language_effect(data1, data2):
     if len(data1) == 0 or len(data2) == 0:
         return np.nan
     
+    if isinstance(data1, list):
+        data1 = np.array(data1)
+    if isinstance(data2, list):
+        data2 = np.array(data2)
+    
     n1 = len(data1)
     n2 = len(data2)
     
-    count = 0
-    for x in data1:
-        for y in data2:
-            if x > y:
-                count += 1
-            elif x == y:
-                count += 0.5
+    # count = 0
+    # for x in data1:
+    #     for y in data2:
+    #         if x > y:
+    #             count += 1
+    #         elif x == y:
+    #             count += 0.5
+    count = np.sum(data1[:, None] > data2) + 0.5 * np.sum(data1[:, None] == data2)
     
     cle = count / (n1 * n2)
+    # print(cle)
     return cle
 
