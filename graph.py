@@ -124,7 +124,7 @@ def barh_plot(userId, uiId, attr, target):
     plt.show()
     plt.close()
 
-def barh_plot_all(userId, attr, target=OBJ_LABEL, figsize=FIGSIZE, save=SAVE, pdf=None):
+def barh_plot_all(userId, ui, attr, target=OBJ_LABEL, figsize=FIGSIZE, save=SAVE, pdf=None):
     fig, axs = plt.subplots(nrows=4, ncols=1, figsize=figsize)
 
     for uiId, ax in enumerate(axs):
@@ -1233,7 +1233,7 @@ if __name__ == "__main__":
         # get_max_min("taskCollision")
         # get_max_min("taskTime")
 
-
+        save_pdf(barh_plot_all, args=dict(attr="obj"), uiIdRange=range(0, 1))
         # save_pdf(pos_xz_diff_n, args=dict(n=60))
         # save_pdf(pos_xz)
         # save_pdf(rot_y_diff_n, args=dict(n=60))
