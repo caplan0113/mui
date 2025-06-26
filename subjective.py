@@ -54,7 +54,7 @@ def box_plot(attr, figsize=FIGSIZE, save=SAVE, pdf=None):
     txt = ""
     for v in range(len(tlabel)):
         for u in range(v + 1, len(tlabel)):
-            if res[v][u]:
+            if res[v][u][0]:
                 txt += f"{tlabel[v]}-{tlabel[u]}, "
 
     if txt:
@@ -81,7 +81,7 @@ def box_ranking_plot(attr, figsize=FIGSIZE, save=SAVE, pdf=None):
     txt = ""
     for v in range(4):
         for u in range(v + 1, 4):
-            if res[v][u]:
+            if res[v][u][0]:
                 txt += f"{UI_LABEL[v]}-{UI_LABEL[u]}, "
     
     if txt:
@@ -166,4 +166,4 @@ if __name__ == "__main__":
     # print(len(all_corr()))
 
     # scatter_plot("mental", "physical")
-    # all_scatter_plot()
+    all_scatter_plot()

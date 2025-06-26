@@ -12,7 +12,7 @@ import pandas as pd
 warnings.filterwarnings("error", category=UserWarning)
 warnings.filterwarnings("error", category=RuntimeWarning)
 
-N = 21 + 1
+N = 22 + 1
 TASK_ORDER = [
     [4, 3, 1, 2], [3, 1, 4, 2], [2, 4, 1, 3], [2, 4, 3, 1], [3, 4, 2, 1], 
     [4, 1, 3, 2], [1, 4, 2, 3], [4, 3, 2, 1], [1, 3, 4, 2], [4, 2, 1, 3],
@@ -686,10 +686,6 @@ def get_warning_mask(warning, window=5):
     return masks
 
 def get_corr(data1, data2, axis=0):
-    if np.array(data1).ndim == 1:
-        data1 = np.array(data1).reshape(-1, 1)
-        data2 = np.array(data2).reshape(-1, 1)
-
     if axis == 1:
         data1 = np.array(data1).T
         data2 = np.array(data2).T
@@ -740,10 +736,10 @@ def samples_test_rel(data1, data2, n_parametric=False):
         if ND_test(data1) and ND_test(data2) and not n_parametric:
             print("parametric test")
             statistic, p_value = ttest_rel(data1, data2)
-            r = -2
+            r = common_language_effect_rel(data1, data2)
         else:
             statistic, p_value = wilcoxon(data1, data2)
-            r = common_language_effect(data1, data2)
+            r = common_language_effect_rel(data1, data2)
     except UserWarning as e:
         print(f"Warning in samples_test_ind: {e}")
         statistic, p_value = 0, 1
@@ -766,10 +762,10 @@ def samples_test_ind(data1, data2, n_parametric=False):
         if ND_test(data1) and ND_test(data2) and not n_parametric:
             print("parametric test")
             statistic, p_value = ttest_ind(data1, data2)
-            r = -2
+            r = common_language_effect_ind(data1, data2)
         else:
             statistic, p_value = mannwhitneyu(data1, data2)
-            r = common_language_effect(data1, data2)
+            r = common_language_effect_ind(data1, data2)
     except UserWarning as e:
         print(f"Warning in samples_test_ind: {e}")
         statistic, p_value = 0, 1
@@ -829,7 +825,7 @@ def cliff_delta(data1, data2):
     delta = count / (n1 * n2)
     return delta
 
-def common_language_effect(data1, data2):
+def common_language_effect_ind(data1, data2):
     """
     Common Language Effect (CLE)を計算する関数
     data1, data2: 比較する2つのデータセット（numpy array）
@@ -856,5 +852,30 @@ def common_language_effect(data1, data2):
     
     cle = count / (n1 * n2)
     # print(cle)
+    return cle
+
+def common_language_effect_rel(data1, data2):
+    """
+    Common Language Effect (CLE)を計算する関数
+    data1, data2: 比較する2つのデータセット（numpy array）
+    """
+    if len(data1) == 0 or len(data2) == 0:
+        return np.nan
+    
+    if isinstance(data1, list):
+        data1 = np.array(data1)
+    if isinstance(data2, list):
+        data2 = np.array(data2)
+    
+    difference_scores = data1-data2
+
+    # 差が0より大きい、または0に等しいケースをカウント
+    greater_than_zero = np.sum(difference_scores > 0)
+    equal_to_zero = np.sum(difference_scores == 0)
+
+    # CLS for paired data
+    # P(D > 0) + 0.5 * P(D = 0) の式
+    cle = (greater_than_zero + 0.5 * equal_to_zero) / len(difference_scores)
+
     return cle
 
