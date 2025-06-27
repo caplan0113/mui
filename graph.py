@@ -875,6 +875,42 @@ def box_time_robot_num(figsize=FIGSIZE, save=SAVE, pdf=None):
         pdf.close()
         print("Saved PDF: {0}".format(pdf_path))
 
+def box_time_robot_num_until_collision(figsize=FIGSIZE, save=SAVE, pdf=None):
+    if pdf:
+        pdf_path = PPATH.format("box_time_robot_num_until_collision")
+        pdf = PdfPages(pdf_path)
+    
+    data = [[[[] for _ in range(4)] for _ in range(4)] for _ in range(5)] # 4 robot numbers, 4 ui states
+
+    for userData in all:
+        for uiId in range(4):
+            subtaskData = userData[uiId]
+            for sub in subtaskData:
+                idx = np.where(sub["collision"] == True)[0]
+                if len(idx) == 0:
+                    tasktime = sub["taskTime"]
+                else:
+                    tasktime = sub["time"][idx[0]] - sub["time"][0]
+                if sub["collision_flag"]:
+                    data[0][ROBOT_NUM[sub["state"]]][uiId].append(tasktime)
+                    data[sub["taskOrder"]][ROBOT_NUM[sub["state"]]][uiId].append(tasktime)
+                else:
+                    data[0][0][uiId].append(tasktime)
+                    data[sub["taskOrder"]][0][uiId].append(tasktime)
+
+    titles = ["No Collision", "Robot 1", "Robot 2", "Robot 3"]
+    for i in range(5):
+        if i == 0:
+            title = "Box Plot of Task Time by Robot Number (All)"
+            box_plot_2x2(data[i], title, "UI", "Task Time [s]", xticklabel=UI, ylim=(-10, 130), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=True)
+        else:
+            title = "Box Plot of Task Time by Robot Number (Task Order: {0})".format(i)
+            box_plot_2x2(data[i], title, "UI", "Task Time [s]", xticklabel=UI, ylim=(-10, 130), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=False)
+
+    if pdf:
+        pdf.close()
+        print("Saved PDF: {0}".format(pdf_path))
+
 def box_mistake_robot_num(figsize=FIGSIZE, save=SAVE, pdf=None):
     if pdf:
         pdf_path = PPATH.format("box_mistake_robot_num")
@@ -1233,7 +1269,7 @@ if __name__ == "__main__":
         # get_max_min("taskCollision")
         # get_max_min("taskTime")
 
-        save_pdf(barh_plot_all, args=dict(attr="obj"), uiIdRange=range(0, 1))
+        # save_pdf(barh_plot_all, args=dict(attr="obj"), uiIdRange=range(0, 1))
         # save_pdf(pos_xz_diff_n, args=dict(n=60))
         # save_pdf(pos_xz)
         # save_pdf(rot_y_diff_n, args=dict(n=60))
@@ -1265,6 +1301,7 @@ if __name__ == "__main__":
         # box_time_ui(pdf=True)
         # box_mistake_ui(pdf=True)
         # box_pupil_d_robot_num(pdf=True)
+        box_time_robot_num_until_collision(pdf=True)
 
         pass
     except Exception as e:
