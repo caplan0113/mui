@@ -875,6 +875,44 @@ def box_time_robot_num(figsize=FIGSIZE, save=SAVE, pdf=None):
         pdf.close()
         print("Saved PDF: {0}".format(pdf_path))
 
+def box_time_robot_num_filter(figsize=FIGSIZE, save=SAVE, pdf=None):
+    if pdf:
+        pdf_path = PPATH.format("box_ontile_percent_robot_num")
+        pdf = PdfPages(pdf_path)
+    
+    data = [[[[] for _ in range(4)] for _ in range(4)] for _ in range(5)] # 4 robot numbers, 4 ui states
+
+    for userData in all:
+        for uiId in range(4):
+            subtaskData = userData[uiId]
+            for sub in subtaskData:
+                tile_pos = TASK_TILE_CENTER[sub["state"]]
+                diff = np.abs(sub["pos"] - tile_pos)
+                within_x = diff[:, 0] <= 0.5
+                within_z = diff[:, 2] <= 0.5
+                percent = np.sum(within_x & within_z) / len(sub["pos"])
+                time = percent
+
+                if sub["collision_flag"]:
+                    data[0][ROBOT_NUM[sub["state"]]][uiId].append(time)
+                    data[sub["taskOrder"]][ROBOT_NUM[sub["state"]]][uiId].append(time)
+                else:
+                    data[0][0][uiId].append(time)
+                    data[sub["taskOrder"]][0][uiId].append(time)
+
+    titles = ["No Collision", "Robot 1", "Robot 2", "Robot 3"]
+    for i in range(5):
+        if i == 0:
+            title = "Box Plot of On-tile Percent by Robot Number (All)"
+            box_plot_2x2(data[i], title, "UI", "Task Time [s]", xticklabel=UI, ylim=(-0.1, 1.1), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=True)
+        else:
+            title = "Box Plot of On-tile Percent by Robot Number (Task Order: {0})".format(i)
+            box_plot_2x2(data[i], title, "UI", "Task Time [s]", xticklabel=UI, ylim=(-0.1, 1.1), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=False)
+
+    if pdf:
+        pdf.close()
+        print("Saved PDF: {0}".format(pdf_path))
+
 def box_time_robot_num_until_collision(figsize=FIGSIZE, save=SAVE, pdf=None):
     if pdf:
         pdf_path = PPATH.format("box_time_robot_num_until_collision")
@@ -1091,15 +1129,15 @@ def box_plot_2x2(data, title, xlabel, ylabel, xticklabel, ylim, titles, figsize=
         # ax.set_xlabel(xlabel)
         # ax.set_ylabel(ylabel)
         if rel: 
-            res = samples_test_rel_list(d)
+            res = samples_test_rel_list(d, n_parametric=True)
         else:
-            res = samples_test_ind_list(d)
+            res = samples_test_ind_list(d, n_parametric=True)
 
         txt = ""
         for u in range(4):
             for v in range(u+1, 4):
                 if res[u][v][0]:
-                    txt += "{0}-{1}({2:.2f}), ".format(tlabel[u], tlabel[v], res[u][v][1])
+                    txt += "{0}-{1}(p={2:.3f}), ".format(tlabel[u], tlabel[v], res[u][v][2])
 
         if txt:
             ax.set_xlabel("*: "+txt[:-2])
@@ -1130,6 +1168,28 @@ def box_plot_3x3(data, title, xlabel, ylabel, subtaskData, xticklabel, ylim, fig
         # ax.set_xlabel(xlabel)
         # ax.set_ylabel(ylabel)
     
+    fig.supxlabel(xlabel, x=0.5, y=0.01)
+    fig.supylabel(ylabel, x=0.01, y=0.5)
+
+    if save:
+        os.makedirs(f"pic/{save}", exist_ok=True)
+        plt.savefig(PATH.format(save, 0, 9), dpi=DPI)
+    elif pdf:
+        pdf.savefig(fig)
+    else:
+        plt.show()
+    plt.close()
+
+def box_plot(data, title, xlabel, ylabel, xticklabel, ylim, figsize=FIGSIZE, save=SAVE, pdf=None):
+    fig, ax = plt.subplots(figsize=figsize)
+    fig.suptitle(title)
+    fig.subplots_adjust(hspace=0.3, left=0.06, right=0.98, top=0.9, wspace=0.11, bottom=0.08)
+
+    ax.boxplot(data, patch_artist=True, notch=True, showmeans=True, meanline=True, tick_labels=xticklabel)
+    ax.set_ylim(*ylim)
+    # ax.set_xlabel(xlabel)
+    # ax.set_ylabel(ylabel)
+
     fig.supxlabel(xlabel, x=0.5, y=0.01)
     fig.supylabel(ylabel, x=0.01, y=0.5)
 
@@ -1300,8 +1360,9 @@ if __name__ == "__main__":
         # box_collision_ui(pdf=True)
         # box_time_ui(pdf=True)
         # box_mistake_ui(pdf=True)
+        box_time_robot_num_filter(pdf=True)
         # box_pupil_d_robot_num(pdf=True)
-        box_time_robot_num_until_collision(pdf=True)
+        # box_time_robot_num_until_collision(pdf=True)
 
         pass
     except Exception as e:
