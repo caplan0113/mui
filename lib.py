@@ -617,6 +617,13 @@ def load_subject_ranking(): # load subjective ranking data
         data = pickle.load(f)
     return data
 
+def load_cognition():
+    filename = os.path.join("bdata", "cognition_speed.pkl")
+    with open(filename, "rb") as f:
+        data = pickle.load(f)
+    
+    return data
+
 # data convert ********************
 """
 distance(a, b): calculate distance between two points in xz plane
