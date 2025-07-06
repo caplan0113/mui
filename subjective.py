@@ -156,7 +156,7 @@ if __name__ == "__main__":
     data = {k: v for k, v in data.items()}
     # print(get_corr(data["mental"], data["physical"], axis=1))
     all_box_plot()
-    all_box_ranking_plot()
+    # all_box_ranking_plot()
 
     # for r in all_corr():
     #     attr1, attr2, corr = r
