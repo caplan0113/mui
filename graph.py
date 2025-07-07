@@ -1413,8 +1413,6 @@ def get_max_min(attr):
     print("{0} | Max: {1}, Min: {2}".format(attr, max_val, min_val))
 
 
-
-
 if __name__ == "__main__":
     try:
         all = load_all()
