@@ -6,7 +6,7 @@ from collections import defaultdict
 import os
 import pickle
 from scipy.spatial.transform import Rotation as R
-from scipy.stats import mode, spearmanr, shapiro, ttest_rel, wilcoxon, normaltest, ttest_ind, mannwhitneyu
+from scipy.stats import mode, spearmanr, shapiro, ttest_rel, wilcoxon, normaltest, ttest_ind, mannwhitneyu, kruskal, friedmanchisquare
 import warnings
 import pandas as pd
 warnings.filterwarnings("error", category=UserWarning)
@@ -752,7 +752,7 @@ def samples_test_rel(data1, data2, n_parametric=False):
         statistic, p_value = 0, 1
         r = -1
     except RuntimeWarning as e:
-        print(f"RuntimeWarning in samples_test_ind: {e}")
+        # print(f"RuntimeWarning in samples_test_ind: {e}")
         statistic, p_value = 0, 1
         r = -1
     except Warning as e:
@@ -778,7 +778,7 @@ def samples_test_ind(data1, data2, n_parametric=False):
         statistic, p_value = 0, 1
         r = -1
     except RuntimeWarning as e:
-        print(f"RuntimeWarning in samples_test_ind: {e}")
+        # print(f"RuntimeWarning in samples_test_ind: {e}")
         statistic, p_value = 0, 1
         r = -1
     except Warning as e:

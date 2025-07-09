@@ -7,10 +7,11 @@ from scipy import stats
 import itertools
 
 TITLE = {"obj": "Eye tracking", "pos": "Camera Position", "rot": "Camera Rotation", "bpm": "Heart rate", "trigger": "Button", "state": "State", "subTask": "Subtask", "warning": "Warning", "collision": "Collision"}
-UI = ["VA", "VO", "AO", "NO"]
+UI = ["Audiovisual", "Visual", "Audio", "None"]
 OBJ_LABEL = ["Robot", "Arrow", "TaskPanel", "Shelf", "Building", "None"]
 OBJ_COLOR = {"Robot": "red", "Arrow": "blue", "TaskPanel": "yellow", "Shelf": "green", "Building": "grey", "None": "grey"}
 PATH = "pic/{0}/{1:02d}_{2:01d}.png"
+FIG = "pic/{0}.svg"
 DPI = 300
 SAVE = False
 FIGSIZE = (11.69, 8.27)
@@ -851,6 +852,7 @@ def box_cognition_time_robot_num(figsize=FIGSIZE, save=SAVE, pdf=None):
             title = "Box Plot of Cognition Time by Robot Number (All)"
             box_plot_2x2(data[i], title, "UI", "Cognition Time [s]", xticklabel=UI, ylim=(-0.5, 5), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=False)
         else:
+            continue
             title = "Box Plot of Cognition Time by Robot Number (Task Order: {0})".format(i)
             box_plot_2x2(data[i], title, "UI", "Cognition Time [s]", xticklabel=UI, ylim=(-0.5, 5), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=False)
 
@@ -882,6 +884,7 @@ def box_collision_robot_num(figsize=FIGSIZE, save=SAVE, pdf=None):
             title = "Box Plot of Collision Count by Robot Number (All)"
             box_plot_2x2(data[i], title, "UI", "Collision Count", xticklabel=UI, ylim=(-1, 16), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=True)
         else:
+            continue
             title = "Box Plot of Collision Count by Robot Number (Task Order: {0})".format(i)
             box_plot_2x2(data[i], title, "UI", "Collision Count", xticklabel=UI, ylim=(-1, 16), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=False)
     
@@ -913,6 +916,7 @@ def box_time_robot_num(figsize=FIGSIZE, save=SAVE, pdf=None):
             title = "Box Plot of Task Time by Robot Number (All)"
             box_plot_2x2(data[i], title, "UI", "Task Time [s]", xticklabel=UI, ylim=(-10, 130), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=True)
         else:
+            continue
             title = "Box Plot of Task Time by Robot Number (Task Order: {0})".format(i)
             box_plot_2x2(data[i], title, "UI", "Task Time [s]", xticklabel=UI, ylim=(-10, 130), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=False)
 
@@ -983,6 +987,7 @@ def box_robot_distance_robot_num(figsize=FIGSIZE, save=SAVE, pdf=None):
             title = "Box Plot of Robot Distance by Robot Number (All)"
             box_plot_2x2(data[i], title, "UI", "Robot Distance [m]", xticklabel=UI, ylim=(-0.5, 4), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=True)
         else:
+            continue
             title = "Box Plot of Robot Distance by Robot Number (Task Order: {0})".format(i)
             box_plot_2x2(data[i], title, "UI", "Robot Distance [m]", xticklabel=UI, ylim=(-0.5, 4), figsize=FIGSIZE, titles=titles, save=save, pdf=pdf, rel=False)
 
@@ -1250,25 +1255,35 @@ def box_plot_2x2(data, title, xlabel, ylabel, xticklabel, ylim, titles, figsize=
         # ax.set_ylabel(ylabel)
         if rel: 
             res = samples_test_rel_list(d, n_parametric=True)
+            group = friedmanchisquare(*d)
         else:
             res = samples_test_ind_list(d, n_parametric=True)
+            if len(d[0]) == 0:
+                group = {"statistic": 0, "pvalue": 1.0}
+            else:
+                group = kruskal(*d)
 
         txt = ""
+        if len(d[0]) != 0:
+            print("id: {0} | s:{1}, p: {2} | ".format(i, group.statistic, group.pvalue), end="")
         for u in range(4):
             for v in range(u+1, 4):
                 if res[u][v][0]:
                     # txt += "{0}-{1}({2:.2f}, {3:.2f}), ".format(tlabel[u], tlabel[v], res[u][v][2], res[u][v][1])
                     txt += "{0}-{1}({2:.2f}), ".format(tlabel[u], tlabel[v], res[u][v][2])
+                print("{0}-{1}({2}), ".format(tlabel[u], tlabel[v], res[u][v][2]), end="")
+        print()
 
         if txt:
-            ax.set_xlabel("*: "+txt[:-2])
+            pass
+            # ax.set_xlabel("*: "+txt[:-2])
 
     fig.supxlabel(xlabel, x=0.5, y=0.01)
     fig.supylabel(ylabel, x=0.01, y=0.5)
 
     if save:
-        os.makedirs(f"pic/{save}", exist_ok=True)
-        plt.savefig(PATH.format(save, 0, 9), dpi=DPI)
+        os.makedirs(f"pic", exist_ok=True)
+        plt.savefig(FIG.format(save), dpi=DPI)
     elif pdf:
         pdf.savefig(fig)
     else:
@@ -1413,6 +1428,150 @@ def get_max_min(attr):
     print("{0} | Max: {1}, Min: {2}".format(attr, max_val, min_val))
 
 
+def collision_plot(figsize=FIGSIZE, save=SAVE):
+    data = [[[[] for _ in range(4)] for _ in range(4)] for _ in range(5)]  # 4 robot numbers, 4 ui states
+
+    for userData in all:
+        for uiId in range(4):
+            subtaskData = userData[uiId]
+            for sub in subtaskData:
+                if sub["collision_flag"]:
+                    data[0][ROBOT_NUM[sub["state"]]][uiId].append(sub["taskCollision"])
+                    data[sub["taskOrder"]][ROBOT_NUM[sub["state"]]][uiId].append(sub["taskCollision"])
+                else:
+                    data[0][0][uiId].append(sub["taskCollision"])
+                    data[sub["taskOrder"]][0][uiId].append(sub["taskCollision"])
+    
+    titles = ["No Collision", "Robot 1", "Robot 2", "Robot 3"]
+    if save:
+        save = "collision"
+
+    box_2x2(data[0], ylabel="the number of collision", xticklabel=UI, ylim=(-1, 20), yticks=range(0, 16, 3), figsize=FIGSIZE, titles=titles, save=save)
+
+def time_plot(figsize=FIGSIZE, save=SAVE):
+    data = [[[[] for _ in range(4)] for _ in range(4)] for _ in range(5)]  # 4 robot numbers, 4 ui states
+
+    for userData in all:
+        for uiId in range(4):
+            subtaskData = userData[uiId]
+            for sub in subtaskData:
+                if sub["collision_flag"]:
+                    data[0][ROBOT_NUM[sub["state"]]][uiId].append(sub["taskTime"])
+                    data[sub["taskOrder"]][ROBOT_NUM[sub["state"]]][uiId].append(sub["taskTime"])
+                else:
+                    data[0][0][uiId].append(sub["taskTime"])
+                    data[sub["taskOrder"]][0][uiId].append(sub["taskTime"])
+
+    titles = ["No Collision", "Robot 1", "Robot 2", "Robot 3"]
+    if save:
+        save = "time"
+
+    box_2x2(data[0], ylabel="task completion time [s]", xticklabel=UI, ylim=(-10, 150), yticks=range(0, 130, 20), figsize=FIGSIZE, titles=titles, save=save)
+    
+
+def box_2x2(data, ylabel, xticklabel, ylim, yticks, titles, figsize=FIGSIZE, save=SAVE):
+    fig, axs = plt.subplots(nrows=2, ncols=2, figsize=figsize)
+    fig.subplots_adjust(hspace=0.2, left=0.06, right=0.98, top=0.97, wspace=0.11, bottom=0.03)
+
+    axs = axs.flatten()
+
+    for i, (ax, d) in enumerate(zip(axs, data)):
+        ax.boxplot(d, tick_labels=xticklabel, showmeans=True, medianprops={'color':'orange', 'linewidth':3, 'linestyle':'-'})
+        ax.set_title(titles[i])
+        ax.set_ylim(*ylim)
+        ax.set_yticks(yticks)
+        # ax.set_xlabel(xlabel)
+        # ax.set_ylabel(ylabel)
+
+    # fig.supxlabel(xlabel, x=0.5, y=0.01)
+    fig.supylabel(ylabel, x=0.01, y=0.5)
+
+    if save:
+        os.makedirs(f"pic", exist_ok=True)
+        plt.savefig(FIG.format(save), dpi=DPI)
+    else:
+        plt.show()
+    plt.close()
+
+def robot_distance_plot(figsize=FIGSIZE, save=SAVE):
+    data = [[[[] for _ in range(4)] for _ in range(4)] for _ in range(5)]  # 4 robot numbers, 4 ui states
+
+    for userData in all:
+        for uiId in range(4):
+            subtaskData = userData[uiId]
+            for sub in subtaskData:
+                dist = min(sub["min_dist"])  # Limit distance to 6m
+                if sub["collision_flag"]:
+                    data[0][ROBOT_NUM[sub["state"]]][uiId].append(dist)
+                    data[sub["taskOrder"]][ROBOT_NUM[sub["state"]]][uiId].append(dist)
+                else:
+                    data[0][0][uiId].append(dist)
+                    data[sub["taskOrder"]][0][uiId].append(dist)   
+    
+    titles = ["Robot 1", "Robot 2", "Robot 3"]
+    if save:
+        save = "robot_distance"
+    box_3x1(data[0][1:4], ylabel="the closest distance to robots [m]", xticklabel=UI, ylim=(-0.4, 4), yticks=np.arange(0, 3.1, 0.5), titles=titles, save=save)
+
+def cognition_time_plot(figsize=FIGSIZE, save=SAVE):
+    data = [[[[] for _ in range(3)] for _ in range(4)] for _ in range(5)]  # 4 robot numbers, 4 ui states
+
+    for userData in all:
+        for uiId in range(3):
+            subtaskData = userData[uiId]
+            for sub in subtaskData:
+                if not sub["collision_flag"]: continue
+
+                pw = 0
+                pt = sub["time"][0]
+                flag = False
+                center = np.array(TASK_TILE_CENTER[sub["state"]])
+                for t, w, p, c in zip(sub["time"], sub["warning"], sub["pos"], sub["collision"]):
+                    if pw == 0 and w > 0:
+                        pt = t
+                        flag = True
+                        # udata[ROBOT_NUM[sub["state"]]-1].append((pw, w, pt-sub["time"][0]))
+                    
+                    if flag and (distance(p, center) >= 0.707):
+                        if t != pt:
+                            data[0][ROBOT_NUM[sub["state"]]][uiId].append(t-pt)
+                            data[sub["taskOrder"]][ROBOT_NUM[sub["state"]]][uiId].append(t-pt)
+                        flag = False
+                    
+                    pw = w
+
+    titles = ["Robot 1", "Robot 2", "Robot 3"]
+    if save:
+        save = "cognition_time"
+
+    box_3x1(data[0][1:4], ylabel="time to leave task area after warning [s]", xticklabel=UI[0:3], ylim=(-0.5, 5), yticks=np.arange(0, 4.1, 1), titles=titles, save=save)
+
+def box_3x1(data, ylabel, xticklabel, ylim, yticks, titles, figsize=(10, 5), save=SAVE):
+    fig, axs = plt.subplots(nrows=1, ncols=3, figsize=figsize)
+    fig.subplots_adjust(hspace=0.2, left=0.07, right=0.99, top=0.95, wspace=0.065, bottom=0.05)
+
+    axs = axs.flatten()
+
+    for i, (ax, d) in enumerate(zip(axs, data)):
+        ax.boxplot(d, tick_labels=xticklabel, showmeans=True, medianprops={'color':'orange', 'linewidth':3, 'linestyle':'-'})
+        ax.set_title(titles[i])
+        ax.set_ylim(*ylim)
+        ax.set_yticks(yticks)
+        if i != 0:
+            ax.set_yticklabels([])
+        # ax.set_xlabel(xlabel)
+        # ax.set_ylabel(ylabel)
+
+    # fig.supxlabel(xlabel, x=0.5, y=0.01)
+    fig.supylabel(ylabel, x=0.01, y=0.5)
+
+    if save:
+        os.makedirs(f"pic", exist_ok=True)
+        plt.savefig(FIG.format(save), dpi=DPI)
+    else:
+        plt.show()
+    plt.close()
+
 if __name__ == "__main__":
     try:
         all = load_all()
@@ -1481,10 +1640,16 @@ if __name__ == "__main__":
         # box_mistake_ui(pdf=True)
         # box_pupil_d_robot_num(pdf=True)
 
-        box_collision_robot_num(pdf=True)
-        box_time_robot_num(pdf=True)
-        box_robot_distance_robot_num(pdf=True)
-        box_cognition_time_robot_num(pdf=True)
+        # box_collision_robot_num(pdf=True)
+        # box_time_robot_num(pdf=True)
+        # box_robot_distance_robot_num(pdf=True)
+        # box_cognition_time_robot_num(pdf=True)
+
+
+        collision_plot(save=True)
+        time_plot(save=True)
+        robot_distance_plot(save=True)
+        cognition_time_plot(save=True)
 
         pass
     except Exception as e:

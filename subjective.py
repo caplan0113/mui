@@ -2,17 +2,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 from lib import *
 from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib.gridspec as gridspec
 
 from itertools import combinations
 
 FIGSIZE = (8, 6)
-PATH = "pic/subjective/{0}.png"
+PATH = "pic/{0}.svg"
 SAVE = False
-UI_LABEL = ["VA", "VO", "AO", "NO"]
+UI_LABEL = ["Audiovisual", "Visual", "Audio", "None"]
 
-KEY = {"easy": "UI was easy to understand", "annoy": "UI was obstructive", "useful": "UI was helpful", "trust": "UI was trustworthy", 
+KEY = {"easy": "Easy to understand", "annoy": "Intrusive", "useful": "UI was helpful", "trust": "UI was trustworthy", 
          "notice": "Noticed robot approaching", "distance": "Perceived distance", "direction": "Perceived direction", 
-         "safe": "Felt safe during subtask", "vr": "Experienced VR sickness", "avoid": "Avoiding robots", 
+         "safe": "Safety perception", "vr": "Experienced VR sickness", "avoid": "Avoiding robots", 
          "mental": "NASA-TLX: Mental", "physical": "NASA-TLX: Physical",
          "temporal": "NASA-TLX: Temporal", "performance": "NASA-TLX: Performance",
          "effort": "NASA-TLX: Effort", "frustration": "NASA-TLX: Frustration",
@@ -150,12 +151,48 @@ def all_box_ranking_plot():
     pdf.close()
     print("All box ranking plots saved to pdf/subjective_box_ranking.pdf")
 
+def questionnaire_plot(figsize=(10, 5), save=SAVE, pdf=None):
+    attr = ["easy", "annoy", "safe"]
+    plot_data = [data[a][:, 0:3] if a in NO_NONE else data[a] for a in attr]
+
+    fig = plt.figure(figsize=figsize)
+
+    gs = gridspec.GridSpec(*(1, 3), width_ratios=[3, 3, 4])
+    axs = []
+    
+    for j in range(3):
+        axs.append(plt.subplot(gs[0, j]))
+
+    adjust = {"wspace":0.05, "hspace":0.5, "bottom":0.05, "left":0.03, "right":0.99, "top":0.95}
+    # fig.subplots_adjust(**adjust)
+    gs.update(**adjust)
+    
+    for i, ax in enumerate(axs):
+        ax.boxplot(plot_data[i], tick_labels=UI_LABEL[0:3] if attr[i] in NO_NONE else UI_LABEL, showmeans=True, medianprops={'color':'orange', 'linewidth':3, 'linestyle':'-'})
+
+        ax.set_title(KEY[attr[i]])
+        ax.set_ylim((0.5, 9))
+        ax.set_yticks(get_tick(attr[i]))
+        if i > 0:
+            ax.set_yticklabels([])
+        else:
+            ax.set_yticklabels(range(1, 8))
+
+    if save:
+        plt.savefig(PATH.format("questionnaire"), dpi=300)
+    elif pdf:
+        pdf.savefig(fig)
+    else:
+        plt.show()
+    plt.close()
+
 if __name__ == "__main__":
     data = load_subject()
     ranking = load_subject_ranking()
-    data = {k: v for k, v in data.items()}
+    # data = {k: v for k, v in data.items()}
     # print(get_corr(data["mental"], data["physical"], axis=1))
-    all_box_plot()
+    # all_box_plot()
+    questionnaire_plot(save=True)
     # all_box_ranking_plot()
 
     # for r in all_corr():
