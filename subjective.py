@@ -151,7 +151,7 @@ def all_box_ranking_plot():
     pdf.close()
     print("All box ranking plots saved to pdf/subjective_box_ranking.pdf")
 
-def questionnaire_plot(figsize=(10, 5), save=SAVE, pdf=None):
+def questionnaire_plot(figsize=(10, 5), save=SAVE):
     attr = ["easy", "annoy", "safe"]
     plot_data = [data[a][:, 0:3] if a in NO_NONE else data[a] for a in attr]
 
@@ -180,11 +180,27 @@ def questionnaire_plot(figsize=(10, 5), save=SAVE, pdf=None):
 
     if save:
         plt.savefig(PATH.format("questionnaire"), dpi=300)
-    elif pdf:
-        pdf.savefig(fig)
     else:
         plt.show()
     plt.close()
+
+def nasa_plot(figsize=(10, 5), save=SAVE):
+    plot_data = data["score"]
+    fig, ax = plt.subplots(figsize=figsize)
+    fig.subplots_adjust(top=0.99, bottom=0.05, left=0.06, right=0.99)
+    ax.boxplot(plot_data, tick_labels=UI_LABEL, showmeans=True, medianprops={'color':'orange', 'linewidth':3, 'linestyle':'-'})
+    ax.set_ylim((-10, 150))
+    ax.set_yticks(range(0, 101, 20))
+    ax.set_yticklabels(range(0, 101, 20))
+    ax.set_ylabel("NASA-TLX Score")
+
+    if save:
+        plt.savefig(PATH.format("natatlx"), dpi=300)
+    else:
+        plt.show()
+    plt.close()
+
+
 
 if __name__ == "__main__":
     data = load_subject()
@@ -193,6 +209,7 @@ if __name__ == "__main__":
     # print(get_corr(data["mental"], data["physical"], axis=1))
     # all_box_plot()
     questionnaire_plot(save=True)
+    nasa_plot(save=True)
     # all_box_ranking_plot()
 
     # for r in all_corr():
