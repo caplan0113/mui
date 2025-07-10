@@ -163,16 +163,19 @@ def questionnaire_plot(figsize=(10, 5), save=SAVE):
     for j in range(3):
         axs.append(plt.subplot(gs[0, j]))
 
-    adjust = {"wspace":0.05, "hspace":0.5, "bottom":0.05, "left":0.03, "right":0.99, "top":0.95}
+    adjust = {"wspace":0.05, "hspace":0.5, "bottom":0.05, "left":0.03, "right":0.99, "top":0.945}
     # fig.subplots_adjust(**adjust)
     gs.update(**adjust)
     
     for i, ax in enumerate(axs):
         ax.boxplot(plot_data[i], tick_labels=UI_LABEL[0:3] if attr[i] in NO_NONE else UI_LABEL, showmeans=True, medianprops={'color':'orange', 'linewidth':3, 'linestyle':'-'})
 
-        ax.set_title(KEY[attr[i]])
+        ax.set_title(KEY[attr[i]], fontsize=16)
         ax.set_ylim((0.5, 9))
         ax.set_yticks(get_tick(attr[i]))
+        ax.tick_params(axis='y', labelsize=12)
+        ax.tick_params(axis='x', labelsize=13)
+
         if i > 0:
             ax.set_yticklabels([])
         else:
@@ -187,15 +190,17 @@ def questionnaire_plot(figsize=(10, 5), save=SAVE):
 def nasa_plot(figsize=(10, 5), save=SAVE):
     plot_data = data["score"]
     fig, ax = plt.subplots(figsize=figsize)
-    fig.subplots_adjust(top=0.99, bottom=0.05, left=0.06, right=0.99)
+    fig.subplots_adjust(top=0.99, bottom=0.05, left=0.08, right=0.99)
     ax.boxplot(plot_data, tick_labels=UI_LABEL, showmeans=True, medianprops={'color':'orange', 'linewidth':3, 'linestyle':'-'})
     ax.set_ylim((-10, 150))
     ax.set_yticks(range(0, 101, 20))
     ax.set_yticklabels(range(0, 101, 20))
-    ax.set_ylabel("NASA-TLX Score")
+    ax.set_ylabel("NASA-TLX Score", fontsize=16)
+    ax.tick_params(axis='y', labelsize=12)
+    ax.tick_params(axis='x', labelsize=13)
 
     if save:
-        plt.savefig(PATH.format("natatlx"), dpi=300)
+        plt.savefig(PATH.format("nasatlx"), dpi=300)
     else:
         plt.show()
     plt.close()
@@ -208,8 +213,7 @@ if __name__ == "__main__":
     # data = {k: v for k, v in data.items()}
     # print(get_corr(data["mental"], data["physical"], axis=1))
     # all_box_plot()
-    questionnaire_plot(save=True)
-    nasa_plot(save=True)
+    
     # all_box_ranking_plot()
 
     # for r in all_corr():
@@ -221,3 +225,10 @@ if __name__ == "__main__":
 
     # scatter_plot("mental", "physical")
     # all_scatter_plot()
+
+
+    questionnaire_plot(save=True)
+    nasa_plot(save=True)
+
+    questionnaire_plot(save=False)
+    nasa_plot(save=False)

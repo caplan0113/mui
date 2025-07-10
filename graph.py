@@ -1266,12 +1266,14 @@ def box_plot_2x2(data, title, xlabel, ylabel, xticklabel, ylim, titles, figsize=
         txt = ""
         if len(d[0]) != 0:
             print("id: {0} | s:{1}, p: {2} | ".format(i, group.statistic, group.pvalue), end="")
+            ave = [str(np.mean(x)) for x in d]
+            print(", ".join(ave), end="")
         for u in range(4):
             for v in range(u+1, 4):
                 if res[u][v][0]:
                     # txt += "{0}-{1}({2:.2f}, {3:.2f}), ".format(tlabel[u], tlabel[v], res[u][v][2], res[u][v][1])
                     txt += "{0}-{1}({2:.2f}), ".format(tlabel[u], tlabel[v], res[u][v][2])
-                print("{0}-{1}({2}), ".format(tlabel[u], tlabel[v], res[u][v][2]), end="")
+                # print("{0}-{1}({2}), ".format(tlabel[u], tlabel[v], res[u][v][2]), end="")
         print()
 
         if txt:
@@ -1446,7 +1448,8 @@ def collision_plot(figsize=FIGSIZE, save=SAVE):
     if save:
         save = "collision"
 
-    box_2x2(data[0], ylabel="the number of collision", xticklabel=UI, ylim=(-1, 20), yticks=range(0, 16, 3), figsize=FIGSIZE, titles=titles, save=save)
+    # box_3x1(data[0][1:4], title="The number of collision", ylabel="the number of collision", ylim=(-1, 20), yticks=range(0, 16, 3), save=save)
+    box_plot(data[0][1:4], ylabel="The number of collision", ylim=(-1, 20), yticks=range(0, 16, 3), xticklabel=titles[1:], legends=UI, save=save)
 
 def time_plot(figsize=FIGSIZE, save=SAVE):
     data = [[[[] for _ in range(4)] for _ in range(4)] for _ in range(5)]  # 4 robot numbers, 4 ui states
@@ -1462,13 +1465,13 @@ def time_plot(figsize=FIGSIZE, save=SAVE):
                     data[0][0][uiId].append(sub["taskTime"])
                     data[sub["taskOrder"]][0][uiId].append(sub["taskTime"])
 
-    titles = ["No Collision", "Robot 1", "Robot 2", "Robot 3"]
+    titles = ["Robot 0", "Robot 1", "Robot 2", "Robot 3"]
     if save:
         save = "time"
 
-    box_2x2(data[0], ylabel="task completion time [s]", xticklabel=UI, ylim=(-10, 150), yticks=range(0, 130, 20), figsize=FIGSIZE, titles=titles, save=save)
+    # box_1x4(data[0], title="Task completion time", ylabel="task completion time [s]", ylim=(-10, 150), yticks=range(0, 130, 20), save=save)
+    box_plot(data[0], ylabel="Task completion time [s]", ylim=(-10, 150), yticks=range(0, 130, 20), xticklabel=titles, legends=UI, save=save)
     
-
 def box_2x2(data, ylabel, xticklabel, ylim, yticks, titles, figsize=FIGSIZE, save=SAVE):
     fig, axs = plt.subplots(nrows=2, ncols=2, figsize=figsize)
     fig.subplots_adjust(hspace=0.2, left=0.06, right=0.98, top=0.97, wspace=0.11, bottom=0.03)
@@ -1493,6 +1496,44 @@ def box_2x2(data, ylabel, xticklabel, ylim, yticks, titles, figsize=FIGSIZE, sav
         plt.show()
     plt.close()
 
+def box_1x4(data, title, ylabel, ylim, yticks, xticklabel=None, titles=None, figsize=(12, 6), save=SAVE):
+    fig, axs = plt.subplots(nrows=1, ncols=4, figsize=figsize)
+    fig.subplots_adjust(hspace=0.2, left=0.07, right=0.995, top=0.95, wspace=0.04, bottom=0.04)
+    # fig.subplots_adjust(hspace=0.2, left=0.06, right=0.995, top=0.895, wspace=0.04, bottom=0.04)
+
+    axs = axs.flatten()
+
+    # fig.suptitle()
+
+    if not titles:
+        titles = ["Robot 0", "Robot 1", "Robot 2", "Robot 3"]
+    
+    if not xticklabel:
+        xticklabel = UI
+        # xticklabel = [ l if i%2 == 0 else "\n"+l for i, l in enumerate(xticklabel) ]  # Add newline for better visibility
+
+    for i, (ax, d) in enumerate(zip(axs, data)):
+        ax.boxplot(d, tick_labels=xticklabel, showmeans=True, medianprops={'color':'orange', 'linewidth':3, 'linestyle':'-'})
+        ax.tick_params(axis='x', labelsize=10)
+        ax.tick_params(axis='y', labelsize=12)
+        ax.set_title(titles[i], fontsize=16)
+        ax.set_ylim(*ylim)
+        ax.set_yticks(yticks)
+        # ax.set_xlabel(xlabel)
+        # ax.set_ylabel(ylabel)
+        if i != 0:
+            ax.set_yticklabels([])
+
+    # fig.supxlabel(xlabel, x=0.5, y=0.01)
+    fig.supylabel(ylabel, x=0.01, y=0.5, fontsize=16)
+
+    if save:
+        os.makedirs(f"pic", exist_ok=True)
+        plt.savefig(FIG.format(save), dpi=DPI)
+    else:
+        plt.show()
+    plt.close()
+
 def robot_distance_plot(figsize=FIGSIZE, save=SAVE):
     data = [[[[] for _ in range(4)] for _ in range(4)] for _ in range(5)]  # 4 robot numbers, 4 ui states
 
@@ -1508,10 +1549,10 @@ def robot_distance_plot(figsize=FIGSIZE, save=SAVE):
                     data[0][0][uiId].append(dist)
                     data[sub["taskOrder"]][0][uiId].append(dist)   
     
-    titles = ["Robot 1", "Robot 2", "Robot 3"]
     if save:
         save = "robot_distance"
-    box_3x1(data[0][1:4], ylabel="the closest distance to robots [m]", xticklabel=UI, ylim=(-0.4, 4), yticks=np.arange(0, 3.1, 0.5), titles=titles, save=save)
+    # box_3x1(data[0][1:4], title="The closest distance to robots", ylabel="the closest distance to robots [m]", ylim=(-0.4, 4), yticks=np.arange(0, 3.1, 0.5), save=save)
+    box_plot(data[0][1:4], ylabel="The closest distance to robots [m]", ylim=(-0.4, 4), yticks=np.arange(0, 3.1, 0.5), xticklabel=["Robot 1", "Robot 2", "Robot 3"], legends=UI, save=save)
 
 def cognition_time_plot(figsize=FIGSIZE, save=SAVE):
     data = [[[[] for _ in range(3)] for _ in range(4)] for _ in range(5)]  # 4 robot numbers, 4 ui states
@@ -1540,21 +1581,28 @@ def cognition_time_plot(figsize=FIGSIZE, save=SAVE):
                     
                     pw = w
 
-    titles = ["Robot 1", "Robot 2", "Robot 3"]
     if save:
         save = "cognition_time"
 
-    box_3x1(data[0][1:4], ylabel="time to leave task area after warning [s]", xticklabel=UI[0:3], ylim=(-0.5, 5), yticks=np.arange(0, 4.1, 1), titles=titles, save=save)
+    # box_3x1(data[0][1:4], title="Time to leave task area after warning", ylabel="time to leave task area after warning[s]", xticklabel=UI[0:3], ylim=(-0.5, 5), yticks=np.arange(0, 4.1, 1), save=save)
+    box_plot(data[0][1:4], ylabel="Time to leave task area after warning [s]", ylim=(-0.5, 5), yticks=np.arange(0, 4.1, 1), xticklabel=["Robot 1", "Robot 2", "Robot 3"], legends=UI[0:3], save=save)
 
-def box_3x1(data, ylabel, xticklabel, ylim, yticks, titles, figsize=(10, 5), save=SAVE):
+def box_3x1(data, title, ylabel, ylim, yticks, xticklabel=False, titles=False, figsize=(12, 6), save=SAVE):
     fig, axs = plt.subplots(nrows=1, ncols=3, figsize=figsize)
-    fig.subplots_adjust(hspace=0.2, left=0.07, right=0.99, top=0.95, wspace=0.065, bottom=0.05)
+    fig.subplots_adjust(hspace=0.2, left=0.07, right=0.99, top=0.95, wspace=0.04, bottom=0.05)
 
     axs = axs.flatten()
+    if not titles:
+        titles = ["Robot 1", "Robot 2", "Robot 3"]
+    if not xticklabel:
+        xticklabel = UI
 
+    # fig.suptitle(title)
     for i, (ax, d) in enumerate(zip(axs, data)):
         ax.boxplot(d, tick_labels=xticklabel, showmeans=True, medianprops={'color':'orange', 'linewidth':3, 'linestyle':'-'})
-        ax.set_title(titles[i])
+        ax.tick_params(axis='x', labelsize=13)
+        ax.tick_params(axis='y', labelsize=12)
+        ax.set_title(titles[i], fontsize=16)
         ax.set_ylim(*ylim)
         ax.set_yticks(yticks)
         if i != 0:
@@ -1563,7 +1611,7 @@ def box_3x1(data, ylabel, xticklabel, ylim, yticks, titles, figsize=(10, 5), sav
         # ax.set_ylabel(ylabel)
 
     # fig.supxlabel(xlabel, x=0.5, y=0.01)
-    fig.supylabel(ylabel, x=0.01, y=0.5)
+    fig.supylabel(ylabel, x=0.01, y=0.5, fontsize=16)
 
     if save:
         os.makedirs(f"pic", exist_ok=True)
@@ -1572,10 +1620,182 @@ def box_3x1(data, ylabel, xticklabel, ylim, yticks, titles, figsize=(10, 5), sav
         plt.show()
     plt.close()
 
+def questionnaire_plot(save=SAVE):
+    attr = ["easy", "annoy", "safe"]
+    plot_data = [list(data[a][:, 0:3].T) if a != "safe" else list(data[a].T) for a in attr]
+
+    labels = ["Easy to understand", "Intrusive", "Safety perception"]
+
+    if save:
+        save = "questionnaire"
+
+    box_plot(plot_data, ylabel="", ylim=(0.5, 9), yticks=range(1, 8), xticklabel=labels, legends=UI, save=save)
+
+def nasatlx_plot(save=SAVE):
+    attr = [["mental", "physical", "temporal", "performance"], ["effort", "frustration", "score"]]
+    plot_data = [[list(data[a].T) for a in r]for r in attr]
+
+    labels = [["Mental demand", "Physical demand", "Temporal demand", "Performance"], ["Effort", "Frustration", "Overall score"]]
+
+    if save:
+        save = "nasatlx"
+
+    box_plot_2x1(plot_data, ylabel="", ylim=(-10, 150), yticks=range(0, 101, 20), xticklabel=labels, legends=UI, save=save)
+
+def box_plot(data, ylabel, ylim, yticks, xticklabel=False, legends=False, figsize=(12, 6), save=SAVE):
+    fig, ax = plt.subplots(figsize=figsize)
+    fig.subplots_adjust(hspace=0.2, left=0.085, right=0.99, top=0.9, wspace=0.04, bottom=0.06)
+
+    boxes = []
+    labels = []
+
+    if not xticklabel:
+        xticklabel = ["Robot 1", "Robot 2", "Robot 3"]
+    
+    if not legends:
+        legends = UI
+    
+    colors = ["#FF7F0E", "#1F77B4", "#2CA02C", "#A9A9A9"]
+    median_colors = ["#FF7F0E", "#1F77B4", "#2CA02C", "#6B6B6B"]
+    
+    spacing_factor = 1.5  # Adjust this factor to increase or decrease the spacing between groups
+    mean_color = "#000096"  # Color for the mean marker
+    median_color = "#DC00DC"  # Color for the median line
+    xticks_positions = []
+    first_pos = 0
+    for i, d in enumerate(data):
+        current_positions = [first_pos + j for j in range(len(d))]
+        xticks_positions.append((current_positions[0]+current_positions[-1])/2)
+        first_pos = current_positions[-1] + spacing_factor
+        bp = ax.boxplot(d, 
+                        positions=current_positions,
+                        widths=0.6,
+                        patch_artist=True,
+                        showmeans=True,
+                        meanprops={"markerfacecolor": mean_color, "markeredgecolor": mean_color},
+                        medianprops={"color":median_color, "linewidth": 2})
+        
+        for patch, color in zip(bp['boxes'], colors):
+            patch.set_facecolor(color)
+            patch.set_alpha(0.5)
+            patch.set_edgecolor("black")
+        
+        for i, median in enumerate(bp['medians']):
+            median.set_color(median_colors[i])
+            median.set_marker('o')
+            median.set_markersize(5)
+
+        for whisker in bp['whiskers']:
+            whisker.set_color(color="black")
+        for cap in bp['caps']:
+            cap.set_color("black")
+        for flier in bp['fliers']:
+            flier.set(marker='o', color='black', alpha=0.7)
+        
+    
+    for k, g in enumerate(legends):
+        boxes.append(plt.Rectangle((0, 0), 1, 1, color=colors[k], ec="black", alpha=0.5))
+        labels.append(g)
+    
+    ax.set_xticks(xticks_positions)
+    ax.set_xticklabels(xticklabel, fontsize=18)
+    # ax.set_ylabel(ylabel, fontsize=16)
+    ax.set_ylim(*ylim)
+    ax.set_yticks(yticks)
+    ax.tick_params(axis='y', labelsize=16)
+    ax.legend(boxes, labels, loc='lower center', ncol=len(legends), fontsize=18, bbox_to_anchor=(0.5, 1))
+
+    fig.supylabel(ylabel, x=0.01, y=0.5, fontsize=18)
+
+    if save:
+        os.makedirs(f"pic", exist_ok=True)
+        plt.savefig(FIG.format(save), dpi=DPI)
+    else:
+        plt.show()
+    plt.close()
+
+def box_plot_2x1(data, ylabel, ylim, yticks, xticklabel=False, legends=False, figsize=(12, 10), save=SAVE):
+    fig, axs = plt.subplots(nrows=2, ncols=1, figsize=figsize)
+    fig.subplots_adjust(hspace=0.13, left=0.048, right=0.99, top=0.94, wspace=0.04, bottom=0.06)
+
+    boxes = []
+    labels = []
+
+    if not xticklabel:
+        xticklabel = ["Robot 1", "Robot 2", "Robot 3"]
+    
+    if not legends:
+        legends = UI
+    
+    colors = ["#FF7F0E", "#1F77B4", "#2CA02C", "#A9A9A9"]
+    median_colors = ["#FF7F0E", "#1F77B4", "#2CA02C", "#6B6B6B"]
+    
+    spacing_factor = 1.5  # Adjust this factor to increase or decrease the spacing between groups
+    mean_color = "#000096"  # Color for the mean marker
+    median_color = "#DC00DC"  # Color for the median line
+    
+    for k, ax in enumerate(axs):
+        xticks_positions = []
+        first_pos = 0
+        for i, d in enumerate(data[k]):
+            current_positions = [first_pos + j for j in range(len(d))]
+            xticks_positions.append((current_positions[0]+current_positions[-1])/2)
+            first_pos = current_positions[-1] + spacing_factor
+            bp = ax.boxplot(d, 
+                            positions=current_positions,
+                            widths=0.6,
+                            patch_artist=True,
+                            showmeans=True,
+                            meanprops={"markerfacecolor": mean_color, "markeredgecolor": mean_color},
+                            medianprops={"color":median_color, "linewidth": 2})
+            
+            for patch, color in zip(bp['boxes'], colors):
+                patch.set_facecolor(color)
+                patch.set_alpha(0.5)
+                patch.set_edgecolor("black")
+            
+            for i, median in enumerate(bp['medians']):
+                median.set_color(median_colors[i])
+                median.set_marker('o')
+                median.set_markersize(5)
+
+            for whisker in bp['whiskers']:
+                whisker.set_color(color="black")
+            for cap in bp['caps']:
+                cap.set_color("black")
+            for flier in bp['fliers']:
+                flier.set(marker='o', color='black', alpha=0.7)
+        
+        ax.set_xticks(xticks_positions)
+        ax.set_xticklabels(xticklabel[k], fontsize=18)
+        # ax.set_ylabel(ylabel, fontsize=16)
+        ax.set_ylim(*ylim)
+        ax.set_yticks(yticks)
+        ax.tick_params(axis='y', labelsize=16)
+        
+    
+    for k, g in enumerate(legends):
+        boxes.append(plt.Rectangle((0, 0), 1, 1, color=colors[k], ec="black", alpha=0.5))
+        labels.append(g)
+    
+    
+    axs[0].legend(boxes, labels, loc='lower center', ncol=len(legends), fontsize=18, bbox_to_anchor=(0.5, 1))
+
+    fig.supylabel(ylabel, x=0.01, y=0.5, fontsize=18)
+
+    if save:
+        os.makedirs(f"pic", exist_ok=True)
+        plt.savefig(FIG.format(save), dpi=DPI)
+    else:
+        plt.show()
+    plt.close()
+
+
 if __name__ == "__main__":
     try:
         all = load_all()
         attr = load_subject_attr()
+        data = load_subject()
         # total, average = calculate_change(i, j, "pos")
         # print(i, j, "Total change: {0}, Average change: {1}".format(total, average))
         # calculate_change(i, j, "qua")
@@ -1650,6 +1870,14 @@ if __name__ == "__main__":
         time_plot(save=True)
         robot_distance_plot(save=True)
         cognition_time_plot(save=True)
+        questionnaire_plot(save=True)
+        nasatlx_plot(save=True)
+
+        # questionnaire_plot(save=False)
+        # robot_distance_plot(save=False)
+        # time_plot(save=False)
+        # cognition_time_plot(save=False)
+        # nasatlx_plot(save=False)
 
         pass
     except Exception as e:
