@@ -5,9 +5,10 @@ from matplotlib.backends.backend_pdf import PdfPages
 import math
 from scipy import stats
 import itertools
+import seaborn as sns
 
 TITLE = {"obj": "Eye tracking", "pos": "Camera Position", "rot": "Camera Rotation", "bpm": "Heart rate", "trigger": "Button", "state": "State", "subTask": "Subtask", "warning": "Warning", "collision": "Collision"}
-UI = ["Audiovisual", "Visual", "Audio", "None"]
+UI = ["Audiovisual", "Visual", "Auditory", "None"]
 OBJ_LABEL = ["Robot", "Arrow", "TaskPanel", "Shelf", "Building", "None"]
 OBJ_COLOR = {"Robot": "red", "Arrow": "blue", "TaskPanel": "yellow", "Shelf": "green", "Building": "grey", "None": "grey"}
 PATH = "pic/{0}/{1:02d}_{2:01d}.png"
@@ -1429,48 +1430,92 @@ def get_max_min(attr):
     min_val = min([min([min([data[attr] if not isinstance(data[attr], np.ndarray) else min(data[attr]) for data in uidata ]) for uidata in userData]) for userData in all])
     print("{0} | Max: {1}, Min: {2}".format(attr, max_val, min_val))
 
+# graph functions *****************************
 
-def collision_plot(figsize=FIGSIZE, save=SAVE):
-    data = [[[[] for _ in range(4)] for _ in range(4)] for _ in range(5)]  # 4 robot numbers, 4 ui states
+def get_collision():
+    data = [[[] for _ in range(4)] for _ in range(3)] # 4 robot numbers, 4 ui states
 
     for userData in all:
         for uiId in range(4):
             subtaskData = userData[uiId]
             for sub in subtaskData:
                 if sub["collision_flag"]:
-                    data[0][ROBOT_NUM[sub["state"]]][uiId].append(sub["taskCollision"])
-                    data[sub["taskOrder"]][ROBOT_NUM[sub["state"]]][uiId].append(sub["taskCollision"])
-                else:
-                    data[0][0][uiId].append(sub["taskCollision"])
-                    data[sub["taskOrder"]][0][uiId].append(sub["taskCollision"])
+                    data[ROBOT_NUM[sub["state"]]-1][uiId].append(sub["taskCollision"]) # robot 1-3
     
-    titles = ["No Collision", "Robot 1", "Robot 2", "Robot 3"]
+    return data, ["Robot 1", "Robot 2", "Robot 3"], UI
+
+def get_time():
+    data = [[[] for _ in range(4)] for _ in range(4)] # 4 robot numbers, 4 ui states
+
+    for userData in all:
+        for uiId in range(4):
+            subtaskData = userData[uiId]
+            for sub in subtaskData:
+                if sub["collision_flag"]:
+                    data[ROBOT_NUM[sub["state"]]][uiId].append(sub["taskTime"]) # robot 1-3
+                else:
+                    data[0][uiId].append(sub["taskTime"])
+    
+    return data, ["Robot 0", "Robot 1", "Robot 2", "Robot 3"], UI
+
+def get_distance():
+    data = [[[] for _ in range(4)] for _ in range(3)] # 4 robot numbers, 4 ui states
+
+    for userData in all:
+        for uiId in range(4):
+            subtaskData = userData[uiId]
+            for sub in subtaskData:
+                dist = min(sub["min_dist"])  # Limit distance to 6m
+                if sub["collision_flag"]:
+                    data[ROBOT_NUM[sub["state"]]-1][uiId].append(dist) # robot 1-3
+    
+    return data, ["Robot 1", "Robot 2", "Robot 3"], UI
+
+def get_response_time():
+    data = [[[] for _ in range(3)] for _ in range(3)]  # 4 robot numbers, 4 ui states
+
+    for userData in all:
+        for uiId in range(3):
+            subtaskData = userData[uiId]
+            for sub in subtaskData:
+                if not sub["collision_flag"]: continue
+
+                pw = 0
+                pt = sub["time"][0]
+                flag = False
+                center = np.array(TASK_TILE_CENTER[sub["state"]])
+                for t, w, p, c in zip(sub["time"], sub["warning"], sub["pos"], sub["collision"]):
+                    if pw == 0 and w > 0:
+                        pt = t
+                        flag = True
+                        # udata[ROBOT_NUM[sub["state"]]-1].append((pw, w, pt-sub["time"][0]))
+                    
+                    if flag and (distance(p, center) >= 0.707):
+                        if t != pt:
+                            data[ROBOT_NUM[sub["state"]]-1][uiId].append(t-pt) # robot 1-3
+                        flag = False
+                    
+                    pw = w
+    
+    return data, ["Robot 1", "Robot 2", "Robot 3"], UI[1:4]
+
+def collision_plot(figsize=FIGSIZE, save=SAVE):
+    data, titles, ui = get_collision()
+    
     if save:
         save = "collision"
 
     # box_3x1(data[0][1:4], title="The number of collision", ylabel="the number of collision", ylim=(-1, 20), yticks=range(0, 16, 3), save=save)
-    box_plot(data[0][1:4], ylabel="The number of collision", ylim=(-1, 20), yticks=range(0, 16, 3), xticklabel=titles[1:], legends=UI, save=save)
+    box_plot(data, ylabel="The number of collision", ylim=(-1, 20), yticks=range(0, 16, 3), xticklabel=titles, legends=ui, save=save)
 
 def time_plot(figsize=FIGSIZE, save=SAVE):
-    data = [[[[] for _ in range(4)] for _ in range(4)] for _ in range(5)]  # 4 robot numbers, 4 ui states
+    data, titles, ui = get_time()
 
-    for userData in all:
-        for uiId in range(4):
-            subtaskData = userData[uiId]
-            for sub in subtaskData:
-                if sub["collision_flag"]:
-                    data[0][ROBOT_NUM[sub["state"]]][uiId].append(sub["taskTime"])
-                    data[sub["taskOrder"]][ROBOT_NUM[sub["state"]]][uiId].append(sub["taskTime"])
-                else:
-                    data[0][0][uiId].append(sub["taskTime"])
-                    data[sub["taskOrder"]][0][uiId].append(sub["taskTime"])
-
-    titles = ["Robot 0", "Robot 1", "Robot 2", "Robot 3"]
     if save:
         save = "time"
 
     # box_1x4(data[0], title="Task completion time", ylabel="task completion time [s]", ylim=(-10, 150), yticks=range(0, 130, 20), save=save)
-    box_plot(data[0], ylabel="Task completion time [s]", ylim=(-10, 150), yticks=range(0, 130, 20), xticklabel=titles, legends=UI, save=save)
+    box_plot(data, ylabel="Task completion time [s]", ylim=(-10, 150), yticks=range(0, 130, 20), xticklabel=titles, legends=ui, save=save)
     
 def box_2x2(data, ylabel, xticklabel, ylim, yticks, titles, figsize=FIGSIZE, save=SAVE):
     fig, axs = plt.subplots(nrows=2, ncols=2, figsize=figsize)
@@ -1535,57 +1580,21 @@ def box_1x4(data, title, ylabel, ylim, yticks, xticklabel=None, titles=None, fig
     plt.close()
 
 def robot_distance_plot(figsize=FIGSIZE, save=SAVE):
-    data = [[[[] for _ in range(4)] for _ in range(4)] for _ in range(5)]  # 4 robot numbers, 4 ui states
-
-    for userData in all:
-        for uiId in range(4):
-            subtaskData = userData[uiId]
-            for sub in subtaskData:
-                dist = min(sub["min_dist"])  # Limit distance to 6m
-                if sub["collision_flag"]:
-                    data[0][ROBOT_NUM[sub["state"]]][uiId].append(dist)
-                    data[sub["taskOrder"]][ROBOT_NUM[sub["state"]]][uiId].append(dist)
-                else:
-                    data[0][0][uiId].append(dist)
-                    data[sub["taskOrder"]][0][uiId].append(dist)   
+    data, titles, ui = get_distance()
     
     if save:
         save = "robot_distance"
     # box_3x1(data[0][1:4], title="The closest distance to robots", ylabel="the closest distance to robots [m]", ylim=(-0.4, 4), yticks=np.arange(0, 3.1, 0.5), save=save)
-    box_plot(data[0][1:4], ylabel="The closest distance to robots [m]", ylim=(-0.4, 4), yticks=np.arange(0, 3.1, 0.5), xticklabel=["Robot 1", "Robot 2", "Robot 3"], legends=UI, save=save)
+    box_plot(data, ylabel="The closest distance to robots [m]", ylim=(-0.4, 4), yticks=np.arange(0, 3.1, 0.5), xticklabel=titles, legends=ui, save=save)
 
 def cognition_time_plot(figsize=FIGSIZE, save=SAVE):
-    data = [[[[] for _ in range(3)] for _ in range(4)] for _ in range(5)]  # 4 robot numbers, 4 ui states
-
-    for userData in all:
-        for uiId in range(3):
-            subtaskData = userData[uiId]
-            for sub in subtaskData:
-                if not sub["collision_flag"]: continue
-
-                pw = 0
-                pt = sub["time"][0]
-                flag = False
-                center = np.array(TASK_TILE_CENTER[sub["state"]])
-                for t, w, p, c in zip(sub["time"], sub["warning"], sub["pos"], sub["collision"]):
-                    if pw == 0 and w > 0:
-                        pt = t
-                        flag = True
-                        # udata[ROBOT_NUM[sub["state"]]-1].append((pw, w, pt-sub["time"][0]))
-                    
-                    if flag and (distance(p, center) >= 0.707):
-                        if t != pt:
-                            data[0][ROBOT_NUM[sub["state"]]][uiId].append(t-pt)
-                            data[sub["taskOrder"]][ROBOT_NUM[sub["state"]]][uiId].append(t-pt)
-                        flag = False
-                    
-                    pw = w
+    data, titles, ui = get_response_time()
 
     if save:
         save = "cognition_time"
 
     # box_3x1(data[0][1:4], title="Time to leave task area after warning", ylabel="time to leave task area after warning[s]", xticklabel=UI[0:3], ylim=(-0.5, 5), yticks=np.arange(0, 4.1, 1), save=save)
-    box_plot(data[0][1:4], ylabel="Time to leave task area after warning [s]", ylim=(-0.5, 5), yticks=np.arange(0, 4.1, 1), xticklabel=["Robot 1", "Robot 2", "Robot 3"], legends=UI[0:3], save=save)
+    box_plot(data, ylabel="Time to leave task area after warning [s]", ylim=(-0.5, 5), yticks=np.arange(0, 4.1, 1), xticklabel=titles, legends=ui, save=save)
 
 def box_3x1(data, title, ylabel, ylim, yticks, xticklabel=False, titles=False, figsize=(12, 6), save=SAVE):
     fig, axs = plt.subplots(nrows=1, ncols=3, figsize=figsize)
@@ -1620,27 +1629,47 @@ def box_3x1(data, title, ylabel, ylim, yticks, xticklabel=False, titles=False, f
         plt.show()
     plt.close()
 
+def safe_plot(save=SAVE):
+    data, titles, ui = zip(get_collision(), get_distance())
+    ylims = [(-1, 20), (-0.4, 3.7)]
+    yticks = [range(0, 16, 3), np.arange(0, 3.1, 0.5)]
+
+    if save:
+        save = "safe"
+
+    box_plot_2x1(data, ylim=ylims, yticks=yticks, xticklabel=titles, legends=UI, y_labels=["The number of collision", "The closest distance to robots [m]"], save=save)
+
+def efficiency_plot(save=SAVE):
+    data, titles, ui = zip(get_time(), get_response_time())
+    ylims = [(-10, 150), (-0.5, 5)]
+    yticks = [range(0, 130, 20), np.arange(0, 4.1, 1)]
+
+    if save:
+        save = "efficiency"
+
+    box_plot_2x1(data, ylim=ylims, yticks=yticks, xticklabel=titles, legends=UI, y_labels=["Task completion time [s]", "Time to leave task area after warning [s]"], save=save)
+
 def questionnaire_plot(save=SAVE):
     attr = ["easy", "annoy", "safe"]
-    plot_data = [list(data[a][:, 0:3].T) if a != "safe" else list(data[a].T) for a in attr]
+    plot_data = [list(subject[a][:, 0:3].T) if a != "safe" else list(subject[a].T) for a in attr]
 
     labels = ["Easy to understand", "Intrusive", "Safety perception"]
 
     if save:
         save = "questionnaire"
 
-    box_plot(plot_data, ylabel="", ylim=(0.5, 9), yticks=range(1, 8), xticklabel=labels, legends=UI, save=save)
+    box_plot(plot_data, ylabel="Subject questionnaire", ylim=(0.5, 9), yticks=range(1, 8), xticklabel=labels, legends=UI, save=save)
 
 def nasatlx_plot(save=SAVE):
     attr = [["mental", "physical", "temporal", "performance"], ["effort", "frustration", "score"]]
-    plot_data = [[list(data[a].T) for a in r]for r in attr]
+    plot_data = [[list(subject[a].T) for a in r]for r in attr]
 
     labels = [["Mental demand", "Physical demand", "Temporal demand", "Performance"], ["Effort", "Frustration", "Overall score"]]
 
     if save:
         save = "nasatlx"
 
-    box_plot_2x1(plot_data, ylabel="", ylim=(-10, 150), yticks=range(0, 101, 20), xticklabel=labels, legends=UI, save=save)
+    box_plot_2x1(plot_data, ylabel="NASA-TLX", ylim=[(-10, 150)]*2, yticks=[range(0, 101, 20)]*2, xticklabel=labels, legends=UI, save=save)
 
 def box_plot(data, ylabel, ylim, yticks, xticklabel=False, legends=False, figsize=(12, 6), save=SAVE):
     fig, ax = plt.subplots(figsize=figsize)
@@ -1714,9 +1743,9 @@ def box_plot(data, ylabel, ylim, yticks, xticklabel=False, legends=False, figsiz
         plt.show()
     plt.close()
 
-def box_plot_2x1(data, ylabel, ylim, yticks, xticklabel=False, legends=False, figsize=(12, 10), save=SAVE):
+def box_plot_2x1(data,  ylim, yticks, ylabel=False, y_labels=False, xticklabel=False, legends=False, figsize=(12, 10), save=SAVE):
     fig, axs = plt.subplots(nrows=2, ncols=1, figsize=figsize)
-    fig.subplots_adjust(hspace=0.13, left=0.048, right=0.99, top=0.94, wspace=0.04, bottom=0.06)
+    fig.subplots_adjust(hspace=0.13, left=0.08, right=0.99, top=0.94, wspace=0.04, bottom=0.06)
 
     boxes = []
     labels = []
@@ -1768,9 +1797,11 @@ def box_plot_2x1(data, ylabel, ylim, yticks, xticklabel=False, legends=False, fi
         
         ax.set_xticks(xticks_positions)
         ax.set_xticklabels(xticklabel[k], fontsize=18)
-        # ax.set_ylabel(ylabel, fontsize=16)
-        ax.set_ylim(*ylim)
-        ax.set_yticks(yticks)
+        if y_labels:
+            ax.set_ylabel(y_labels[k], fontsize=16, labelpad=15)
+            ax.yaxis.set_label_coords(-0.06, 0.5)
+        ax.set_ylim(*ylim[k])
+        ax.set_yticks(yticks[k])
         ax.tick_params(axis='y', labelsize=16)
         
     
@@ -1781,7 +1812,8 @@ def box_plot_2x1(data, ylabel, ylim, yticks, xticklabel=False, legends=False, fi
     
     axs[0].legend(boxes, labels, loc='lower center', ncol=len(legends), fontsize=18, bbox_to_anchor=(0.5, 1))
 
-    fig.supylabel(ylabel, x=0.01, y=0.5, fontsize=18)
+    if ylabel:
+        fig.supylabel(ylabel, x=0.01, y=0.5, fontsize=18)
 
     if save:
         os.makedirs(f"pic", exist_ok=True)
@@ -1790,12 +1822,47 @@ def box_plot_2x1(data, ylabel, ylim, yticks, xticklabel=False, legends=False, fi
         plt.show()
     plt.close()
 
+def all_heatmap_plot(save=SAVE):
+    datas, yticks, xticks = zip(get_collision(), get_distance(), get_time(), get_response_time())
+    titles = ["Average Collision Count", "Average Robot Distance", "Average Task Time", "Average Response Time"]
+    filenames = ["collision", "robot_distance", "task_time", "response_time"]
+
+    for data, title, xtick, ytick, filename in zip(datas, titles, xticks, yticks, filenames):
+        plot_data = [[np.mean(np.array(d)) for d in r] for r in data]
+        if save:
+            save = filename
+        heatmap_plot(plot_data, title=title, xticklabel=xtick, yticklabel=ytick, save=save)
+
+def heatmap_plot(data, title, xticklabel, yticklabel, figsize=FIGSIZE, save=SAVE):
+    fig, ax = plt.subplots(figsize=figsize)
+    fig.subplots_adjust(hspace=0.2, left=0.035, right=1, top=0.95, wspace=0.04, bottom=0.05)
+    df = pd.DataFrame(data, index=yticklabel, columns=xticklabel)
+    sns.heatmap(df, annot=True, fmt=".2f", cmap="viridis", cbar=True, square=True, linewidths=0.5, linecolor='black', ax=ax, annot_kws={"color": "white", "fontsize": 16, "weight": "bold"})
+    ax.tick_params(axis='x', labelsize=16)
+    ax.tick_params(axis='y', labelsize=16)
+
+    cbar = ax.collections[0].colorbar
+    cbar.ax.tick_params(labelsize=16)
+
+    # for text in ax.texts:
+    #     text.set_fontsize(16)
+    #     text.set_color('black')
+    
+    ax.set_title(title, fontsize=20)
+
+    if save:
+        os.makedirs(f"pic", exist_ok=True)
+        plt.savefig(FIG.format("heatmap_"+save), dpi=DPI)
+    else:
+        plt.show()
+    
+    plt.close()
 
 if __name__ == "__main__":
     try:
         all = load_all()
         attr = load_subject_attr()
-        data = load_subject()
+        subject = load_subject()
         # total, average = calculate_change(i, j, "pos")
         # print(i, j, "Total change: {0}, Average change: {1}".format(total, average))
         # calculate_change(i, j, "qua")
@@ -1866,13 +1933,20 @@ if __name__ == "__main__":
         # box_cognition_time_robot_num(pdf=True)
 
 
-        collision_plot(save=True)
-        time_plot(save=True)
-        robot_distance_plot(save=True)
-        cognition_time_plot(save=True)
-        questionnaire_plot(save=True)
-        nasatlx_plot(save=True)
+        # collision_plot(save=True)
+        # time_plot(save=True)
+        # robot_distance_plot(save=True)
+        # cognition_time_plot(save=True)
 
+        # questionnaire_plot(save=True)
+        # nasatlx_plot(save=True)
+        # safe_plot(save=True)
+        # efficiency_plot(save=True)
+
+        all_heatmap_plot(save=True)
+
+        # efficiency_plot(save=False)
+        # safe_plot(save=False)
         # questionnaire_plot(save=False)
         # robot_distance_plot(save=False)
         # time_plot(save=False)

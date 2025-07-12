@@ -886,3 +886,14 @@ def common_language_effect_rel(data1, data2):
 
     return cle
 
+def friedman_test(data):
+    statistic, pvalue = friedmanchisquare(*data)
+    print(f"Friedman test statistic: {statistic}, p-value: {pvalue}")
+
+    UI = ["AV", "VO", "AO", "NO"]
+    res = samples_test_rel_list(data, n_parametric=True)
+    for i in range(len(data)):
+        for j in range(i + 1, len(data)):
+            if res[i][j][0]:
+                print(f"{UI[i]}-{UI[j]}({res[i][j][2]}), ", end="")
+    print()
