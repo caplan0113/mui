@@ -1497,7 +1497,7 @@ def get_response_time():
                     
                     pw = w
     
-    return data, ["Robot 1", "Robot 2", "Robot 3"], UI[1:4]
+    return data, ["Robot 1", "Robot 2", "Robot 3"], UI[0:3]
 
 def collision_plot(figsize=FIGSIZE, save=SAVE):
     data, titles, ui = get_collision()
@@ -1938,11 +1938,10 @@ if __name__ == "__main__":
         # robot_distance_plot(save=True)
         # cognition_time_plot(save=True)
 
-        # questionnaire_plot(save=True)
-        # nasatlx_plot(save=True)
-        # safe_plot(save=True)
-        # efficiency_plot(save=True)
-
+        questionnaire_plot(save=True)
+        nasatlx_plot(save=True)
+        safe_plot(save=True)
+        efficiency_plot(save=True)
         all_heatmap_plot(save=True)
 
         # efficiency_plot(save=False)
