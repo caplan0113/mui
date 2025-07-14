@@ -793,7 +793,7 @@ def samples_test_rel_list(datas, n_parametric=False):
     for i in range(len(datas)):
         for j in range(i + 1, len(datas)):
             result = samples_test_rel(datas[i], datas[j], n_parametric=n_parametric)
-            results[i][j] = (result[2], result[3], result[1])
+            results[i][j] = (result[2], result[3], result[1], result[0])
     return results
 
 def samples_test_ind_list(datas, n_parametric=False):
@@ -801,7 +801,7 @@ def samples_test_ind_list(datas, n_parametric=False):
     for i in range(len(datas)):
         for j in range(i + 1, len(datas)):
             result = samples_test_ind(datas[i], datas[j], n_parametric=n_parametric)
-            results[i][j] = (result[2], result[3], result[1])
+            results[i][j] = (result[2], result[3], result[1], result[0])
     return results
 
 def cliff_delta(data1, data2):
