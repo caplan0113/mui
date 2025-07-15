@@ -8,7 +8,7 @@ import itertools
 import seaborn as sns
 
 TITLE = {"obj": "Eye tracking", "pos": "Camera Position", "rot": "Camera Rotation", "bpm": "Heart rate", "trigger": "Button", "state": "State", "subTask": "Subtask", "warning": "Warning", "collision": "Collision"}
-UI = ["M", "V", "A", "N"]
+UI = ["Audiovisual", "Visual", "Auditory", "None"]
 OBJ_LABEL = ["Robot", "Arrow", "TaskPanel", "Shelf", "Building", "None"]
 OBJ_COLOR = {"Robot": "red", "Arrow": "blue", "TaskPanel": "yellow", "Shelf": "green", "Building": "grey", "None": "grey"}
 PATH = "pic/{0}/{1:02d}_{2:01d}.png"
@@ -121,18 +121,41 @@ def get_response_time():
                 pt = sub["time"][0]
                 flag = False
                 center = np.array(TASK_TILE_CENTER[sub["state"]])
+                tmp = []
                 for t, w, p, c in zip(sub["time"], sub["warning"], sub["pos"], sub["collision"]):
-                    if pw == 0 and w > 0:
+                    # if pw == 0 and w > 0:
+                    if w > 0 and not flag:
                         pt = t
                         flag = True
                         # udata[ROBOT_NUM[sub["state"]]-1].append((pw, w, pt-sub["time"][0]))
                     
                     if flag and (distance(p, center) >= 0.707):
                         if t != pt:
-                            data[ROBOT_NUM[sub["state"]]-1][uiId].append(t-pt) # robot 1-3
+                            tmp.append(t-pt) # robot 1-3
                         flag = False
                     
                     pw = w
+                
+                if tmp:
+                    data[ROBOT_NUM[sub["state"]]-1][uiId].append(np.mean(tmp))  # robot 1-3
+                else:
+                    print(f"{userData[0][0]['userId']} {uiId} {sub['state']} no response time")
+                    pt = sub["time"][0]
+                    flag = False
+                    center = np.array(TASK_TILE_CENTER[sub["state"]])
+                    tmp = []
+                    for t, w, p, c in zip(sub["time"], sub["warning"], sub["pos"], sub["collision"]):
+                        if w > 0 and not flag:
+                            pt = t
+                            flag = True
+                            # udata[ROBOT_NUM[sub["state"]]-1].append((pw, w, pt-sub["time"][0]))
+                        
+                        if flag and (distance(p, center) >= 0.707):
+                            if t != pt:
+                                tmp.append(t-pt) # robot 1-3
+                            flag = False
+                    
+                    print(tmp)
     
     return data, ROBOT_LABEL[1:4], UI[0:3]
 
@@ -169,7 +192,7 @@ def cognition_time_plot(figsize=FIGSIZE, save=SAVE):
         save = "cognition_time"
 
     # box_3x1(data[0][1:4], title="Time to leave task area after warning", ylabel="time to leave task area after warning[s]", xticklabel=UI[0:3], ylim=(-0.5, 5), yticks=np.arange(0, 4.1, 1), save=save)
-    box_plot(data, ylabel="Time to leave task area after warning [s]", ylim=(-0.5, 4.5), yticks=np.arange(0, 4.1, 1), xticklabel=titles, legends=ui, save=save)
+    box_plot(data, ylabel="Time to leave task area after warning [s]", ylim=(-0.5, 5), yticks=np.arange(0, 4.1, 1), xticklabel=titles, legends=ui, save=save)
 
 def safe_plot(save=SAVE):
     data, titles, ui = zip(get_collision(), get_distance())
@@ -413,9 +436,9 @@ def samples_list():
     data = [get_collision(), get_distance(), get_time(), get_response_time()]
     filenames = ["collision", "robot_distance", "task_time", "response_time"]
     for d, f in zip(data, filenames):
-        print(f)
+        print(f"[{f}]")
         if f=="response_time":
-            samples(d, False)
+            samples(d, True)
         else:
             samples(d, True)
         print()
@@ -430,112 +453,58 @@ def samples_list():
     
 
 def samples2(data, titles):
+    UI = ["M", "V", "A", "N"]
     for k, d in enumerate(data):
-        print(titles[k])
+        print(f"[{titles[k]}]", end="")
         result = samples_test_rel_list(d, n_parametric=True)
         c = "T"
+        group = friedmanchisquare(*d)
+        cg = "Friedman"
+        
+        print(f" | {cg}: X^2 = {group.statistic:.2f}, p = {group.pvalue:.1e}")
+
         for i in range(len(result)):
             for j in range(i+1, len(result)):
                 if result[i][j][0]:
-                    print(f"{UI[i]}-{UI[j]}: ({c}={result[i][j][3]:.1f}, p={result[i][j][2]:.1e})")
+                    print(f"{UI[i]}-{UI[j]}: ({c} = {result[i][j][3]:.1f}, p = {result[i][j][2]:.1e})")
 
         print()
 
 def samples(data, flag):
+    UI = ["M", "V", "A", "N"]
     titles = data[1]
     data = data[0]
     for k, d in enumerate(data):
-        print(titles[k])
+        print(titles[k], end="")
         if flag:
             result = samples_test_rel_list(d, n_parametric=True)
             c = "T"
+            group = friedmanchisquare(*d)
+            cg = "Friedman"
         else:
             result = samples_test_ind_list(d, n_parametric=True)
             c = "U"
+            group = kruskal(*d)
+            cg = "Kruskal-Wallis"
+        
+        print(f" | {cg}: X^2 = {group.statistic:.2f}, p = {group.pvalue:.1e}")
+
+        for s in range(len(d)):
+            res = ND_test(d[s])
+            print(f"{UI[s]}: statistic = {res[0]:.2f}, p-value = {res[1]:.1e}")
+        print()
+
         for i in range(len(result)):
             for j in range(i+1, len(result)):
                 if result[i][j][0]:
                     print(f"{UI[i]}-{UI[j]}: ({c}={result[i][j][3]:.1f}, p={result[i][j][2]:.1e})")
+        print()
 
 if __name__ == "__main__":
     try:
         all = load_all()
         attr = load_subject_attr()
         subject = load_subject()
-        # total, average = calculate_change(i, j, "pos")
-        # print(i, j, "Total change: {0}, Average change: {1}".format(total, average))
-        # calculate_change(i, j, "qua")
-        # pie_plot(i, j, "obj", OBJ_LABEL)
-        # barh_plot(i, j, "obj", OBJ_LABEL)
-        # robot_distance(3, 0)
-        # barh_plot(3, 0, "obj", OBJ_LABEL)
-        # barh_plot_all(3, "obj", OBJ_LABEL)
-        # rot_y_plot(3, 0)
-        # robot_distance(3, 0)
-        # rot_y_diff_plot(3, 0)
-        # save_pdf(bpm)
-        # save_pdf(pos_xz, args=dict())
-        # rot_y_diff(3, 3)
-        # rot_y_diff_n(3, 3, 10)
-        # map_func(pos_xz, args=dict())
-        # pos_xz(3, 0)
-        # twin_xz_roty_diff_n(3, 0, 5, legends=["Position XZ", "Rotation Y"])
-        # map_func(pos_xz_diff_center)
-        # map_func(gaze_diff_n, args=dict(n=5))
-        # map_func(robot_distance_diff_n, args=dict(n=5))
-        # map_func(eye_open)
-        # map_func(pupil_size)
-        # map_func(pupil_pos_diff_n, args=dict(n=5))
-
-        # box_warning_pupil_d(3, 0)
-        # box_sum_warning_pupil_d(3, 0)
-        # map_func(box_sum_warning_pupil_d, uiIdRange=range(0, 1))
-        # get_max_min("taskMistake")
-        # get_max_min("taskCollision")
-        # get_max_min("taskTime")
-        # get_max_min("min_dist")
-
-        # save_pdf(barh_plot_all, args=dict(attr="obj"), uiIdRange=range(0, 1))
-        # save_pdf(pos_xz_diff_n, args=dict(n=60))
-        # save_pdf(pos_xz)
-        # save_pdf(rot_y_diff_n, args=dict(n=60))
-        # save_pdf(bpm)
-        # save_pdf(robot_distance)
-        # save_pdf(robot_distance_diff_n, args=dict(n=60))
-        # save_pdf(rot_y_diff)
-        # save_pdf(rot_y)
-        # save_pdf(twin_xz_roty_diff_n, args=dict(n=60, legends=["Position XZ", "Rotation Y"]))
-        # save_pdf(subtask_time, uiIdRange=range(0, 1))
-        # save_pdf(collision_count, uiIdRange=range(0, 1))
-        # save_pdf(mistake_count, uiIdRange=range(0, 1))
-        # save_pdf(twin_robot_distance_xz_diff_center, args=dict(legends=["Robot Distance", "Position XZ Diff Center"]))
-        # save_pdf(pos_xz_diff_center)
-        # save_pdf(gaze_diff_n, args=dict(n=1))
-        # save_pdf(eye_open)
-        # save_pdf(pupil_size)
-        # save_pdf(scatter_pos_xz_diff_center_robot_distance)
-        # save_pdf(scatter_pupil_size_pos_xz_diff_center, args=dict(n=5))
-        # save_pdf(scatter_pupil_d_robot_distance, args=dict(n=60))
-        # save_pdf(scatter_warning_pupil_d, args=dict(n=0))
-        # save_pdf(box_warning_pupil_d, uiIdRange=range(3, 4), name="_NO")
-        # save_pdf(box_sum_warning_pupil_d, uiIdRange=range(1), name="")
-        # group_time_collision(pdf=True)
-        # box_mistake_robot_num(pdf=True)
-        # box_collision_ui(pdf=True)
-        # box_time_ui(pdf=True)
-        # box_mistake_ui(pdf=True)
-        # box_pupil_d_robot_num(pdf=True)
-
-        # box_collision_robot_num(pdf=True)
-        # box_time_robot_num(pdf=True)
-        # box_robot_distance_robot_num(pdf=True)
-        # box_cognition_time_robot_num(pdf=True)
-
-
-        # collision_plot(save=True)
-        # time_plot(save=True)
-        # robot_distance_plot(save=True)
-        # cognition_time_plot(save=True)
 
         # questionnaire_plot(save=True)
         # nasatlx_plot(save=True)

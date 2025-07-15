@@ -723,13 +723,15 @@ def ND_test(data):
             statistic, p_value = normaltest(data)
     except UserWarning as e:
         print(f"Warning in ND_test: {e}")
-        return False
+        return 0, 1
     except RuntimeWarning as e:
         print(f"RuntimeWarning in ND_test: {e}")
-        return False
+        return 0, 1
     except Warning as e:
         print(f"Warning in ND_test: {e}")
-        return False
+        return 0, 1
+
+    return statistic, p_value
 
     if p_value < 0.05:
         return False  # データは正規分布に従わない
